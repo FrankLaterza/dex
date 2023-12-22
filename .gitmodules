@@ -6,3 +6,7 @@
 	path = pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
 	branch = 6a7db34ff63345a7badec79ebea3aaef1712f374
+[submodule "FreeRTOS-Kernel"]
+	path = FreeRTOS-Kernel
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+	branch = 4e7ca2d
