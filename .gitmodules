@@ -2,3 +2,7 @@
 	path = btstack
 	url = https://github.com/bluekitchen/btstack.git
 	branch = 2382b03
+[submodule "pico-sdk"]
+	path = pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
+	branch = 6a7db34ff63345a7badec79ebea3aaef1712f374
