@@ -1,15 +1,17 @@
-#include <stdio.h>
-#include <string.h>
 #include "FreeRTOS.h"
 #include "bt_hid.h"
 #include "btstack.h"
 #include "classic/sdp_server.h"
+#include "hardware/flash.h"
 #include "pico/async_context.h"
 #include "pico/cyw43_arch.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "semphr.h"
 #include "task.h"
+#include "utils.h"
+#include <stdio.h>
+#include <string.h>
 
 #define STAT_LED_0 18 // bt led
 #define STAT_LED_1 19 // stat 1
@@ -32,57 +34,51 @@
 #define HIGH 1
 #define LOW 0
 
-struct Data {
-    // protected data
-    bool state;
-    SemaphoreHandle_t mutex;
-};
-struct Data data;
+// globals
+SemaphoreHandle_t g_mutex_print;
+bool g_packet_gaurd = false;
 
-SemaphoreHandle_t mutex_print;
-// vTaskCoreAffinitySet(inputs, CORE_1);
-// vTaskCoreAffinitySet(bt, CORE_0);
-// blink a light and fill mutex
-void led_task(void *pvParameters) {
+// say hi
+void print_test(void *pvParameters) {
     while (true) {
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-
-        data.state = true;
-        vTaskDelay(500);
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, LOW);
-
-        data.state = false;
+        vGuardedPrint("hello world \0");
         vTaskDelay(500);
     }
+
+    return;
 }
 
 // say hi
-void print_from_second_thread(void *pvParameters) {
-    bool last_state = false;
+void print_test_2(void *pvParameters) {
     while (true) {
-        if (data.state != last_state) {
-            printf("updated state is %s\r\n", data.state ? "true" : "false");
-            last_state = data.state;
-        }
-        vTaskDelay(50);
+        vGuardedPrint("hello world \0");
+        vTaskDelay(500);
     }
 
     return;
 }
 
 void get_inputs(void *pvParameters) {
-
     struct bt_hid_state state;
     while (true) {
-        bt_hid_get_latest(&state);
-        printf("buttons: %04x, l: %d,%d, r: %d,%d, l2,r2: %d,%d hat: %d\n", state.buttons, state.lx, state.ly, state.rx,
-               state.ry, state.l2, state.r2, state.hat);
+        char buf[512];
+        g_packet_gaurd = true;
+        state = bt_hid_get_latest_lazy();
+        g_packet_gaurd = false;
+        sprintf(buf, "buttons: %04x, l: %d,%d, r: %d,%d, l2,r2: %d,%d hat: %d\n", state.buttons, state.lx, state.ly,
+                state.rx, state.ry, state.l2, state.r2, state.hat);
+        vGuardedPrint(buf);
+        if (state.buttons > 0) {
+            gpio_put(PWR_LED, HIGH);
+        } else {
+            gpio_put(PWR_LED, LOW);
+        }
         vTaskDelay(20);
     }
 }
 
 void stat_led_handle(void *pvParameters) {
-    int interval = 400;
+    int interval = 500;
     while (true) {
 
         gpio_put(STAT_LED_0, HIGH);
@@ -100,12 +96,12 @@ void stat_led_handle(void *pvParameters) {
     }
 }
 
-void beep5() {
-    for (int i = 0; i < 5; i++) {
+void beep2() {
+    for (int i = 0; i < 2; i++) {
         gpio_put(BUZZER, HIGH);
-        sleep_ms(100);
+        sleep_ms(50);
         gpio_put(BUZZER, LOW);
-        sleep_ms(100);
+        sleep_ms(50);
     }
 }
 
@@ -116,21 +112,18 @@ void startMotor() {
     sleep_ms(2000);
     gpio_put(SLEEP, LOW);
     gpio_put(RESET, LOW);
-
-
-
-
 }
 
+// TODO put in another file
 void setup() {
 
     stdio_init_all();
     if (cyw43_arch_init()) {
-        printf("Wi-Fi init failed");
-        return -1;
+        printf("Wi-Fi init failed\n");
+        panic("Wi-Fi init failed\n");
     }
 
-    // init gpio
+    // TODO put overclocking here with a flag
     gpio_init(PWR_LED);
     gpio_init(STAT_LED_0);
     gpio_init(STAT_LED_1);
@@ -163,7 +156,7 @@ void setup() {
     gpio_set_dir(SLEEP, GPIO_OUT);
     gpio_set_dir(RESET, GPIO_OUT);
 
-    // configure half stepping TODO change based on speed and accuracy
+    // TODO change based on speed and accuracy
     gpio_put(MS1, HIGH);
     gpio_put(MS2, LOW);
     gpio_put(MS3, LOW);
@@ -171,41 +164,46 @@ void setup() {
     // turn on the power led
     gpio_put(PWR_LED, HIGH);
 
-    beep5();
-    startMotor();
+    // TODO change with debug
+    uart_init(uart0, 9600);
+    gpio_set_function(12, GPIO_FUNC_UART);
+    gpio_set_function(13, GPIO_FUNC_UART);
+
+    // beep2();
+    // startMotor();
 }
 
-int main() {
+void start_core1() {
+    bt_hid_init();
+    vTaskStartScheduler();
+    bt_main();
+}
 
+
+int main() {
     // run the setup script
     setup();
 
     // create a mutex
-    data.mutex = xSemaphoreCreateMutex();
-    data.state = false;
+    g_mutex_print = xSemaphoreCreateMutex();
 
-    TaskHandle_t blink;
     TaskHandle_t print;
+    TaskHandle_t print_2;
     TaskHandle_t stat_led;
-    // TaskHandle_t inputs;
-    TaskHandle_t bt;
+    TaskHandle_t blink;
+    TaskHandle_t inputs;
 
-    xTaskCreate(led_task, "led", 256, NULL, 1, &blink);
-    xTaskCreate(print_from_second_thread, "print", 256, NULL, 1, &print);
-    xTaskCreate(stat_led_handle, "stat_led_handle", 256, NULL, 1, &stat_led);
-    // xTaskCreate(get_inputs, "inputs", 256, NULL, 2, &inputs);
-    // xTaskCreate(bt_main, "bt", 256, NULL, 2, &bt);
+    // xTaskCreate(print_test, "print", 256, NULL, 1, &print);
+    // xTaskCreate(print_test_2, "print2", 256, NULL, 1, &print);
+    // xTaskCreate(stat_led_handle, "stat_led_handle", 256, NULL, 1, &stat_led);
+    // xTaskCreate(blink_2, "blink", 256, NULL, 1, &blink);
+    xTaskCreate(get_inputs, "inputs", 256, NULL, 2, &inputs);
 
-    vTaskCoreAffinitySet(blink, CORE_1);
-    vTaskCoreAffinitySet(print, CORE_1);
-    vTaskCoreAffinitySet(stat_led, CORE_1);
-    // vTaskCoreAffinitySet(inputs, CORE_1);
-    // vTaskCoreAffinitySet(bt, CORE_0);
+    flash_safe_execute_core_init();
+    multicore_launch_core1(start_core1);
 
-    vTaskStartScheduler();
-
-    while (1) {
-        ;
+    while (true) {
+        /* do nothing */
     }
 
     return 1;
