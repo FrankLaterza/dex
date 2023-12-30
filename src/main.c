@@ -3,7 +3,10 @@
 #include "btstack.h"
 #include "classic/sdp_server.h"
 #include "hardware/flash.h"
+#include "hardware/i2c.h"
+#include "mpu6050.h"
 #include "pico/async_context.h"
+#include "pico/binary_info.h"
 #include "pico/cyw43_arch.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
@@ -13,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 
+// TODO move this to the pinout.h
 #define STAT_LED_0 18 // bt led
 #define STAT_LED_1 19 // stat 1
 #define STAT_LED_2 17 // stat 2
@@ -28,6 +32,9 @@
 #define ENABLE 5
 #define SLEEP 10
 #define RESET 11
+#define I2C_SDA 0
+#define I2C_SCL 1
+#define I2C i2c0
 
 #define CORE_0 (1 << 0)
 #define CORE_1 (1 << 1)
@@ -38,27 +45,7 @@
 SemaphoreHandle_t g_mutex_print;
 bool g_packet_gaurd = false;
 
-// say hi
-void print_test(void *pvParameters) {
-    while (true) {
-        vGuardedPrint("hello world \0");
-        vTaskDelay(500);
-    }
-
-    return;
-}
-
-// say hi
-void print_test_2(void *pvParameters) {
-    while (true) {
-        vGuardedPrint("hello world \0");
-        vTaskDelay(500);
-    }
-
-    return;
-}
-
-void get_inputs(void *pvParameters) {
+void print_inputs(void *pvParameters) {
     struct bt_hid_state state;
     while (true) {
         char buf[512];
@@ -93,6 +80,21 @@ void stat_led_handle(void *pvParameters) {
         gpio_put(STAT_LED_2, LOW);
         gpio_put(STAT_LED_1, HIGH);
         vTaskDelay(interval);
+    }
+}
+
+void mpu6050_task(void *pvParameters) {
+    while (true) {
+        mpu6050_poll();
+        vTaskDelay(20);
+    }
+}
+
+// TODO make a hand off after mpu6050 is done or check if fast enough
+void kalman_task(void *pvParameters) {
+    while (true) {
+        // CALC KALMAN HERE`
+        vTaskDelay(200);
     }
 }
 
@@ -156,6 +158,18 @@ void setup() {
     gpio_set_dir(SLEEP, GPIO_OUT);
     gpio_set_dir(RESET, GPIO_OUT);
 
+    // init mpu 6050 with fastest speed
+    i2c_init(I2C, 400000);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA);
+    gpio_pull_up(I2C_SCL);
+    bi_decl(bi_2pins_with_func(I2C_SDA, I2C_SCL, GPIO_FUNC_I2C));
+
+    // setup the mpu
+    mpu6050_reset();
+    mpu6050_config();
+
     // TODO change based on speed and accuracy
     gpio_put(MS1, HIGH);
     gpio_put(MS2, LOW);
@@ -165,9 +179,9 @@ void setup() {
     gpio_put(PWR_LED, HIGH);
 
     // TODO change with debug
-    uart_init(uart0, 9600);
-    gpio_set_function(12, GPIO_FUNC_UART);
-    gpio_set_function(13, GPIO_FUNC_UART);
+    // uart_init(uart0, 9600);
+    // gpio_set_function(12, GPIO_FUNC_UART);
+    // gpio_set_function(13, GPIO_FUNC_UART);
 
     // beep2();
     // startMotor();
@@ -179,7 +193,6 @@ void start_core1() {
     bt_main();
 }
 
-
 int main() {
     // run the setup script
     setup();
@@ -187,17 +200,15 @@ int main() {
     // create a mutex
     g_mutex_print = xSemaphoreCreateMutex();
 
-    TaskHandle_t print;
-    TaskHandle_t print_2;
     TaskHandle_t stat_led;
     TaskHandle_t blink;
     TaskHandle_t inputs;
+    TaskHandle_t mpu6050;
 
-    // xTaskCreate(print_test, "print", 256, NULL, 1, &print);
-    // xTaskCreate(print_test_2, "print2", 256, NULL, 1, &print);
-    // xTaskCreate(stat_led_handle, "stat_led_handle", 256, NULL, 1, &stat_led);
+    xTaskCreate(stat_led_handle, "stat_led_handle", 256, NULL, 1, &stat_led);
     // xTaskCreate(blink_2, "blink", 256, NULL, 1, &blink);
-    xTaskCreate(get_inputs, "inputs", 256, NULL, 2, &inputs);
+    // xTaskCreate(print_inputs, "inputs", 256, NULL, 2, &inputs);
+    xTaskCreate(mpu6050_task, "mpu6050", 256, NULL, 2, &mpu6050);
 
     flash_safe_execute_core_init();
     multicore_launch_core1(start_core1);

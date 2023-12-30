@@ -1,4 +1,6 @@
 add_executable(${PROJECT_NAME}
+    kalman.c
+    mpu6050.c
     utils.c
     bt_hid.c
     main.c
@@ -16,11 +18,14 @@ target_link_libraries(${PROJECT_NAME}
     pico_btstack_classic
     pico_btstack_ble
     pico_btstack_cyw43
+    hardware_i2c
+    hardware_timer
+    hardware_flash
 )
 
 # enable usb output, disable uart output
-pico_enable_stdio_usb(${PROJECT_NAME} 0)
-pico_enable_stdio_uart(${PROJECT_NAME} 1)
+pico_enable_stdio_usb(${PROJECT_NAME} 1)
+pico_enable_stdio_uart(${PROJECT_NAME} 0)
 pico_enable_stdio_semihosting(${PROJECT_NAME} 0)
 
 
