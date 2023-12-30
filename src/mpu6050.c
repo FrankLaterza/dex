@@ -5,11 +5,8 @@
 #include "pico/stdlib.h"
 #include <stdio.h>
 #include <string.h>
+#include "pinout.h"
 
-// TODO move these to a pinouts header file
-#define I2C_SDA 0
-#define I2C_SCL 1
-#define I2C i2c0
 #define DEVICE_ADDRESS 0x68
 #define ACC_X_CAL -0.0625
 #define ACC_Y_CAL 0.015
@@ -22,17 +19,17 @@ static int64_t elapsed_time;
 
 void mpu6050_reset() {
     uint8_t buf[] = {0x6B, 0x00};
-    i2c_write_blocking(I2C, DEVICE_ADDRESS, buf, 2, false);
+    i2c_write_blocking(I2C_INST, DEVICE_ADDRESS, buf, 2, false);
 }
 
 void mpu6050_config() {
     // config mpu6050
     uint8_t config_filt[] = {0x1A, 0x05};
-    i2c_write_blocking(I2C, DEVICE_ADDRESS, config_filt, 2, true);
+    i2c_write_blocking(I2C_INST, DEVICE_ADDRESS, config_filt, 2, true);
     uint8_t config_accel[] = {0x1B, 0x8};
-    i2c_write_blocking(I2C, DEVICE_ADDRESS, config_accel, 2, true);
+    i2c_write_blocking(I2C_INST, DEVICE_ADDRESS, config_accel, 2, true);
     uint8_t config_gyro[] = {0x1C, 0x10};
-    i2c_write_blocking(I2C, DEVICE_ADDRESS, config_gyro, 2, true);
+    i2c_write_blocking(I2C_INST, DEVICE_ADDRESS, config_gyro, 2, true);
 }
 
 void mpu6050_read_raw() {
@@ -40,8 +37,8 @@ void mpu6050_read_raw() {
     uint8_t buffer[6];
     // start reading acceleration registers from register 0x3B for 6 bytes
     uint8_t val = 0x3B;
-    i2c_write_blocking(I2C, DEVICE_ADDRESS, &val, 1, true);
-    i2c_read_blocking(I2C, DEVICE_ADDRESS, buffer, 6, false);
+    i2c_write_blocking(I2C_INST, DEVICE_ADDRESS, &val, 1, true);
+    i2c_read_blocking(I2C_INST, DEVICE_ADDRESS, buffer, 6, false);
 
     for (int i = 0; i < 3; i++) {
         acceleration[i] = (buffer[i * 2] << 8 | buffer[(i * 2) + 1]);
@@ -50,8 +47,8 @@ void mpu6050_read_raw() {
     // now gyro data from reg 0x43 for 6 bytes
     // the register is auto incrementing on each read
     val = 0x43;
-    i2c_write_blocking(I2C, DEVICE_ADDRESS, &val, 1, true);
-    i2c_read_blocking(I2C, DEVICE_ADDRESS, buffer, 6, false);
+    i2c_write_blocking(I2C_INST, DEVICE_ADDRESS, &val, 1, true);
+    i2c_read_blocking(I2C_INST, DEVICE_ADDRESS, buffer, 6, false);
 
     for (int i = 0; i < 3; i++) {
         gyro[i] = (buffer[i * 2] << 8 | buffer[(i * 2) + 1]);

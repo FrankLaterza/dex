@@ -1,4 +1,5 @@
 add_executable(${PROJECT_NAME}
+    pinout.c
     kalman.c
     mpu6050.c
     utils.c

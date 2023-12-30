@@ -12,6 +12,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "utils.h"
 
 #define ACC_X_CAL -0.0625
 #define ACC_Y_CAL 0.015
@@ -85,9 +86,14 @@ void kalman_calc_angle() {
     kalman_1d(kalman_pitch_angle, kalman_uncertainty_pitch_angle, pitch_rate, pitch_angle, delta_time);
     kalman_pitch_angle = kalman_1d_out[0];
     kalman_uncertainty_pitch_angle = kalman_1d_out[1];
-    printf("Roll Angle [°] ");
-    printf("%f", kalman_roll_angle);
-    printf(" Pitch Angle [°] ");
-    printf("%f", kalman_pitch_angle);
-    printf("\n");
+    sprintf(g_print_buf, "Roll Angle [°] ");
+    vGuardedPrint(g_print_buf);
+    sprintf(g_print_buf, "%f", kalman_roll_angle);
+    vGuardedPrint(g_print_buf);
+    sprintf(g_print_buf, " Pitch Angle [°] ");
+    vGuardedPrint(g_print_buf);
+    sprintf(g_print_buf, "%f", kalman_pitch_angle);
+    vGuardedPrint(g_print_buf);
+    sprintf(g_print_buf, "\n");
+    vGuardedPrint(g_print_buf);
 }

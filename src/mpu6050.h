@@ -1,6 +1,8 @@
 #ifndef MPU6050_I2C_H
 #define MPU6050_I2C_H
 
+void mpu6050_config();
+void mpu6050_reset();
 void mpu6050_read_raw();
 void mpu6050_poll();
 void mpu6050_gyro_scale(float *roll_rate, float *pitch_rate, float *yaw_rate);
