@@ -1,4 +1,6 @@
 add_executable(${PROJECT_NAME}
+    stepper.c
+    controls.c
     pinout.c
     kalman.c
     mpu6050.c

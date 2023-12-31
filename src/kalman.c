@@ -86,14 +86,14 @@ void kalman_calc_angle() {
     kalman_1d(kalman_pitch_angle, kalman_uncertainty_pitch_angle, pitch_rate, pitch_angle, delta_time);
     kalman_pitch_angle = kalman_1d_out[0];
     kalman_uncertainty_pitch_angle = kalman_1d_out[1];
-    sprintf(g_print_buf, "Roll Angle [°] ");
-    vGuardedPrint(g_print_buf);
-    sprintf(g_print_buf, "%f", kalman_roll_angle);
-    vGuardedPrint(g_print_buf);
-    sprintf(g_print_buf, " Pitch Angle [°] ");
-    vGuardedPrint(g_print_buf);
-    sprintf(g_print_buf, "%f", kalman_pitch_angle);
-    vGuardedPrint(g_print_buf);
-    sprintf(g_print_buf, "\n");
-    vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "Roll Angle [°] ");
+    // vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "%f", kalman_roll_angle);
+    // vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, " Pitch Angle [°] ");
+    // vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "%f", kalman_pitch_angle);
+    // vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "\n");
+    // vGuardedPrint(g_print_buf);
 }

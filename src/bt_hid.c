@@ -153,25 +153,18 @@ static void hid_host_handle_interrupt_report(const uint8_t *packet, uint16_t pac
 
     // if we are using the inputs we don't want to change the mem
     if (!g_bt_packet_gaurd) {
-        // Note: This assumes that we're protected by async_context's
-        // single-threaded-ness
         latest = (struct bt_hid_state){
-            // Somewhat arbitrary packing of the buttons into a single 16-bit word
             .buttons = ((report->buttons[0] & 0xf0) << 8) | ((report->buttons[2] & 0x3) << 8) | (report->buttons[1]),
-
             .lx = report->lx,
             .ly = report->ly,
             .rx = report->rx,
             .ry = report->ry,
             .l2 = report->l2,
             .r2 = report->r2,
-
             .hat = (report->buttons[0] & 0xf),
         };
     }
 
-    // TODO: Parse out battery, touchpad, sixaxis, timestamp, temperature(?!)
-    // Sensors will also need calibration
 }
 
 void bt_hid_get_latest(struct bt_hid_state *dst) {

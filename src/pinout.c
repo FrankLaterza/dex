@@ -1,10 +1,12 @@
 #include "pinout.h"
 #include "hardware/i2c.h"
+#include "mpu6050.h"
 #include "pico/binary_info.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
+#include "stepper.h"
+#include "utils.h"
 #include <stdio.h>
-#include "mpu6050.h"
 
 void pinout_init() {
 
@@ -59,10 +61,10 @@ void pinout_init() {
     mpu6050_reset();
     mpu6050_config();
 
-    // TODO change based on speed and accuracy
-    gpio_put(MS1, HIGH);
-    gpio_put(MS2, LOW);
-    gpio_put(MS3, LOW);
+    // start the steper at full step
+    config_step_size(HALF);
+    gpio_put(DIR_R, LOW);
+    gpio_put(DIR_R, LOW);
 
     // turn on the power led
     gpio_put(PWR_LED, HIGH);

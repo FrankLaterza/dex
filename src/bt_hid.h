@@ -4,6 +4,8 @@
 #ifndef BT_HID_H
 #define BT_HID_H
 
+#include <stdint.h>
+
 struct bt_hid_state {
     uint16_t buttons;
     uint8_t lx;

@@ -71,7 +71,6 @@ void mpu6050_get_delta(int64_t *delta_time){
     *delta_time = elapsed_time;
 }
 
-
 void mpu6050_poll() {
     end_time = get_absolute_time();
     elapsed_time = absolute_time_diff_us(start_time, end_time);
