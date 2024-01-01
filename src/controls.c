@@ -161,9 +161,9 @@ void process_hid_controls(struct bt_hid_state controls) {
 
     // sprintf(g_print_buf, "ry %u | ", controls.ry);
     // vGuardedPrint(g_print_buf);
-    // sprintf(g_print_buf, "rmp map %u | ", map(controls.ry, 0, 255, 10, 200));
+    // sprintf(g_print_buf, "rmp map %u | ", map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
     // vGuardedPrint(g_print_buf);
-    // sprintf(g_print_buf, "us %u\n", rpm_to_step_delay_us(map(controls.ry, 0, 255, 10, 200)));
+    // sprintf(g_print_buf, "us %u\n", rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL)));
     // vGuardedPrint(g_print_buf);
 
     // set the step period

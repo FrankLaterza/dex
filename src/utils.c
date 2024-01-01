@@ -5,9 +5,10 @@
 #include "pinout.h"
 #include "semphr.h"
 #include "stepper.h"
+#include "utils.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 // uncomment if lame
 #define BUZZKILL
@@ -62,4 +63,8 @@ void beep(uint8_t beep_count, uint8_t interval) {
         sleep_ms(interval);
     }
 #endif
+}
+
+int64_t elapsed_time(struct stopwatch_t stopwatch) {
+    return absolute_time_diff_us(stopwatch.start_time, stopwatch.end_time);
 }

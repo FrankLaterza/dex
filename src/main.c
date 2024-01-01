@@ -15,19 +15,32 @@
 #include "stepper.h"
 #include "task.h"
 #include "utils.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
+#include "pid.h"
 
 #define CORE_0 (1 << 0)
 #define CORE_1 (1 << 1)
 
-// all extern globals
+/*
+ * PUT TIME IN MILISECONDS AND DIVIDE BY THIS FACTOR!
+ * freertos is set with a tick speed of 100000 which gives
+ * it 10us accuracy, but seems to be battling resources and
+ * causing timing issues. the steppers are outputing accurate
+ * timeing while the "blink" task seems to be off my 40
+ * milliseconds. knowing this i'm going to keep these settings
+ */
+#define US_TO_RTOS_TICK(us) (us / 10)
+
+// all GLOBALS (see utils)
 SemaphoreHandle_t g_mutex_print;
 bool g_bt_packet_gaurd = false;
 char g_print_buf[1024];
 uint32_t g_step_delay_period_us_left = 3000;
 uint32_t g_step_delay_period_us_right = 3000;
+float g_current_angle_roll;
+float g_current_angle_pitch;
 
 /*
  * idk if i want to keep the tasks here or put them in
@@ -42,13 +55,14 @@ void bt_hid_inputs(void *pvParameters) {
         controls = bt_hid_get_latest_lazy();
         g_bt_packet_gaurd = false;
         process_hid_controls(controls);
-        vTaskDelay(50 * 1000);
+        vTaskDelay(US_TO_RTOS_TICK(50000));
     }
 }
 
 void stat_led_handle(void *pvParameters) {
-    int interval = 500 * 1000;
+    int interval = US_TO_RTOS_TICK(500000);
     while (true) {
+
         gpio_put(STAT_LED_1, LOW);
         gpio_put(STAT_LED_2, HIGH);
         vTaskDelay(interval);
@@ -61,27 +75,42 @@ void stat_led_handle(void *pvParameters) {
 void mpu6050_task(void *pvParameters) {
     while (true) {
         mpu6050_poll();
-        vTaskDelay(20 * 1000);
+        vTaskDelay(US_TO_RTOS_TICK(20000));
     }
 }
-
+// static struct stopwatch_t stopwatch1;
 void stepper_left_task(void *pvParameters) {
     while (true) {
-        // 800us
-        gpio_put(STEP_L, HIGH);        
-        vTaskDelay(g_step_delay_period_us_left);
+        // start time
+        // stopwatch1.start_time = get_absolute_time();
+        gpio_put(STEP_L, HIGH);
+        vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
+        // end time
+        // stopwatch1.end_time = get_absolute_time();
+        // print elapsed
+        // sprintf(g_print_buf, "elpased time %u | step %u\n", elapsed_time(stopwatch1), g_step_delay_period_us_left);
+        // vGuardedPrint(g_print_buf);
         gpio_put(STEP_L, LOW);
-        vTaskDelay(g_step_delay_period_us_left);
+        vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
     }
 }
 
 void stepper_right_task(void *pvParameters) {
     while (true) {
-        // 800us
         gpio_put(STEP_R, HIGH);
-        vTaskDelay(g_step_delay_period_us_right);
+        vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
         gpio_put(STEP_R, LOW);
-        vTaskDelay(g_step_delay_period_us_right);
+        vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
+    }
+}
+
+void process_pid(void *pvParameters) {
+    
+    struct pid_t pid_wheels;
+    pid_init(&pid_wheels, 5, 0.0000, 0.2);
+    while (true) {
+        balance(&pid_wheels);
+        vTaskDelay(US_TO_RTOS_TICK(100000));
     }
 }
 
@@ -102,13 +131,15 @@ int main() {
     TaskHandle_t stepper_left;
     TaskHandle_t stepper_right;
     TaskHandle_t mpu6050;
+    TaskHandle_t pid;
 
     // TODO check task timing and align accordingly
     xTaskCreate(stat_led_handle, "stat_led_handle", 256, NULL, 5, &stat_led);
-    // xTaskCreate(bt_hid_inputs, "inputs", 256, NULL, 3, &inputs);
-    // xTaskCreate(stepper_left_task, "stepper_left", 256, NULL, 1, &stepper_left);
-    // xTaskCreate(stepper_right_task, "stepper_right", 256, NULL, 1, &stepper_right);
-    // xTaskCreate(mpu6050_task, "mpu6050", 256, NULL, 2, &mpu6050);
+    xTaskCreate(bt_hid_inputs, "inputs", 256, NULL, 3, &inputs);
+    xTaskCreate(stepper_left_task, "stepper_left", 256, NULL, 1, &stepper_left);
+    xTaskCreate(stepper_right_task, "stepper_right", 256, NULL, 1, &stepper_right);
+    xTaskCreate(mpu6050_task, "mpu6050", 256, NULL, 2, &mpu6050);
+    xTaskCreate(process_pid, "pid", 256, NULL, 2, &pid);
 
     // beep after setup
     beep(3, 50);

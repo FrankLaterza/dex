@@ -9,10 +9,10 @@
 #include "kalman.h"
 #include "mpu6050.h"
 #include "pico/stdlib.h"
+#include "utils.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include "utils.h"
 
 #define ACC_X_CAL -0.0625
 #define ACC_Y_CAL 0.015
@@ -86,6 +86,8 @@ void kalman_calc_angle() {
     kalman_1d(kalman_pitch_angle, kalman_uncertainty_pitch_angle, pitch_rate, pitch_angle, delta_time);
     kalman_pitch_angle = kalman_1d_out[0];
     kalman_uncertainty_pitch_angle = kalman_1d_out[1];
+    g_current_angle_roll  = kalman_roll_angle;
+    g_current_angle_pitch = kalman_pitch_angle;
     // sprintf(g_print_buf, "Roll Angle [°] ");
     // vGuardedPrint(g_print_buf);
     // sprintf(g_print_buf, "%f", kalman_roll_angle);

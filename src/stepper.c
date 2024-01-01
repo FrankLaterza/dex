@@ -2,8 +2,8 @@
 #include "pico/stdlib.h"
 #include "pinout.h"
 #include "utils.h"
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 void enable_stepper() {
     // enable the motor
@@ -23,6 +23,7 @@ void disable_stepper() {
  */
 // TODO confirm this calculation
 uint32_t rpm_to_step_delay_us(float rpm) {
+    if (rpm == 0) { return 0; }
     // TODO float division is slow and ugly
     // revolutions per second
     float rps = rpm / 60;
@@ -59,5 +60,18 @@ void config_step_size(uint8_t step_config) {
         gpio_put(MS1, HIGH);
         gpio_put(MS2, HIGH);
         gpio_put(MS3, HIGH);
+    }
+}
+
+void set_direction(bool direction) {
+    // forward
+    if (direction) {
+        gpio_put(DIR_L, LOW);
+        gpio_put(DIR_R, HIGH);
+    }
+    // backward
+    else {
+        gpio_put(DIR_L, HIGH);
+        gpio_put(DIR_R, LOW);
     }
 }

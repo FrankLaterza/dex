@@ -1,4 +1,5 @@
 add_executable(${PROJECT_NAME}
+    pid.c
     stepper.c
     controls.c
     pinout.c
