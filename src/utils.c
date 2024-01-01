@@ -7,6 +7,7 @@
 #include "stepper.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 // uncomment if lame
 #define BUZZKILL

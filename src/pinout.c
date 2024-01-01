@@ -7,8 +7,22 @@
 #include "stepper.h"
 #include "utils.h"
 #include <stdio.h>
+#include "hardware/vreg.h"
 
 void pinout_init() {
+    
+    /*
+     * note if you wish to overclock your pi pico you'll have to change the
+     * spi clock speed in your pico-sdk. This will allow you to communicate 
+     * with the CYW43439 chip by further dividing the spi clock. You'll need
+     * to change definition in your sdk located at
+     * YOUR_SDK_LOCATION/src/rp2_common/pico_cyw43_driver/cyw43_bus_pio_spi.c
+     * TODO find a way to change this in the config in the cmake
+    */
+    vreg_set_voltage(VREG_VOLTAGE_1_30);
+    sleep_ms(1000);
+    // OVERCLOCK 🔥🔥🔥
+    set_sys_clock_khz(400000, true);
 
     stdio_init_all();
     if (cyw43_arch_init()) {
@@ -16,7 +30,6 @@ void pinout_init() {
         panic("Wi-Fi init failed\n");
     }
 
-    // TODO put overclocking here with a flag
     gpio_init(PWR_LED);
     gpio_init(STAT_LED_0);
     gpio_init(STAT_LED_1);
@@ -62,8 +75,8 @@ void pinout_init() {
     mpu6050_config();
 
     // start the steper at full step
-    config_step_size(HALF);
-    gpio_put(DIR_R, LOW);
+    config_step_size(FULL);
+    gpio_put(DIR_L, HIGH);
     gpio_put(DIR_R, LOW);
 
     // turn on the power led

@@ -26,6 +26,15 @@ target_link_libraries(${PROJECT_NAME}
     hardware_flash
 )
 
+# slow down spi flash for overclock
+pico_define_boot_stage2(pico-coremark-div4 ${PICO_DEFAULT_BOOT_STAGE2_FILE})
+target_compile_definitions(pico-coremark-div4 PRIVATE PICO_FLASH_SPI_CLKDIV=4)
+pico_set_boot_stage2(${PROJECT_NAME} pico-coremark-div4)
+
+# slow down cyw43 set pio clock divisor for wifi/bt access
+# target_compile_definitions(${PROJECT_NAME} PRIVATE CLOCK_DIV=4)
+# add_definitions(-DCLOCK_DIV=4)
+
 # enable usb output, disable uart output
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)

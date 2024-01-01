@@ -7,12 +7,14 @@ set(PICO_BTSTACK_PATH ${CMAKE_CURRENT_LIST_DIR}/btstack)
 
 # set the freertos path
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS-Kernel)
+# set the pico-sdk path
+set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/pico-sdk)
 
 # set the board
 set(PICO_BOARD pico_w)
 
 # include the sdk
-include(pico-sdk/external/pico_sdk_import.cmake)
+include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include(${FREERTOS_KERNEL_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake)
 
 # define project

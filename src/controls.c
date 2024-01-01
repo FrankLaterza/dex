@@ -3,6 +3,7 @@
 #include "pinout.h"
 #include "stepper.h"
 #include "utils.h"
+#include <stdint.h>
 #include <stdio.h>
 
 #define IS_BIT_SET(value, bit_position) (((value) >> (bit_position)) & 1)
@@ -120,7 +121,11 @@ void process_hid_controls(struct bt_hid_state controls) {
     }
     // TRIANGLE
     if (check_button_lock(15)) {
-        beep(2, 50);
+        // beep(2, 50);
+        sprintf(g_print_buf, "%uus | ", rpm_to_step_delay_us(map(controls.ry, 0, 255, 5, 300)));
+        vGuardedPrint(g_print_buf);
+        sprintf(g_print_buf, "%urmp\n", (map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL)));
+        vGuardedPrint(g_print_buf);
     }
     // LEFT HAT
     if (check_hat_lock(0)) {
@@ -154,16 +159,18 @@ void process_hid_controls(struct bt_hid_state controls) {
     // sprintf(g_print_buf, "step delay %fus\n", g_step_delay_period_us);
     // vGuardedPrint(g_print_buf);
 
-    sprintf(g_print_buf, "ly %u ", controls.ly);
-    vGuardedPrint(g_print_buf);
-    sprintf(g_print_buf, "map %u\n", map(controls.ly, 0, 255, 300, 3000));
-    vGuardedPrint(g_print_buf);
-
+    // sprintf(g_print_buf, "ry %u | ", controls.ry);
+    // vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "rmp map %u | ", map(controls.ry, 0, 255, 10, 200));
+    // vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "us %u\n", rpm_to_step_delay_us(map(controls.ry, 0, 255, 10, 200)));
+    // vGuardedPrint(g_print_buf);
 
     // set the step period
-    g_step_delay_period_us = map(controls.ly, 0, 255, 30, 300);
+    // g_step_delay_period_us_left = rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
+    // g_step_delay_period_us_right = rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
 
-    // store the last state of the b\utton
+    // store the last state of the button
     button_lock = buttons;
     hat_lock = hat;
 }

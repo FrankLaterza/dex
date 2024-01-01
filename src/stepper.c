@@ -3,6 +3,7 @@
 #include "pinout.h"
 #include "utils.h"
 #include <stdio.h>
+#include <stdint.h>
 
 void enable_stepper() {
     // enable the motor
@@ -20,8 +21,8 @@ void disable_stepper() {
  * converts rpm into steps per micro second
  * note this will be the perfect instantaneous delay
  */
-// TODO this calculation is incorrect
-float rpm_to_step_delay_us(float rpm) {
+// TODO confirm this calculation
+uint32_t rpm_to_step_delay_us(float rpm) {
     // TODO float division is slow and ugly
     // revolutions per second
     float rps = rpm / 60;
@@ -32,10 +33,9 @@ float rpm_to_step_delay_us(float rpm) {
     // step delay period (div by 2 because delay twice)
     float delay_period_s = (1 / sps) / 2;
     // get the us delay
-    // TODO CHANGE TO CORRECT UNITS
-    float delay_period_us = delay_period_s * 1000000;
+    int32_t delay_period_us = delay_period_s * 1000000;
     // return the goods
-    return delay_period_us;
+    return (uint32_t)delay_period_us;
 }
 
 void config_step_size(uint8_t step_config) {
