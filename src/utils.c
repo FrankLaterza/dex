@@ -68,3 +68,11 @@ void beep(uint8_t beep_count, uint8_t interval) {
 int64_t elapsed_time(struct stopwatch_t stopwatch) {
     return absolute_time_diff_us(stopwatch.start_time, stopwatch.end_time);
 }
+
+// waits for bt_hid.c to set connected flag
+void wait_for_bt_connect(){
+    while(is_bt_connected == false){
+        // wait
+        vTaskDelay(US_TO_RTOS_TICK(100000));
+    }
+}

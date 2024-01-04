@@ -74,10 +74,6 @@ void pinout_init() {
     mpu6050_reset();
     mpu6050_config();
 
-    // start the steper at full step
-    config_step_size(HALF);
-    set_direction(FORWARD);
-
     // turn on the power led
     gpio_put(PWR_LED, HIGH);
 

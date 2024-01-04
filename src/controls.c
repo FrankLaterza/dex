@@ -58,6 +58,11 @@ uint8_t hat_convert(uint8_t hat) {
     return bin_hat;
 }
 
+int8_t convert_center_axis(uint8_t in, uint8_t min, uint8_t max) {
+    uint8_t center = (max - min) / 2;
+    return center - in;
+}
+
 bool check_hat_lock(uint8_t position) {
     return (IS_BIT_SET(hat, position) && !IS_BIT_SET(hat_lock, position));
 }
@@ -121,11 +126,6 @@ void process_hid_controls(struct bt_hid_state controls) {
     }
     // TRIANGLE
     if (check_button_lock(15)) {
-        // beep(2, 50);
-        sprintf(g_print_buf, "%uus | ", rpm_to_step_delay_us(map(controls.ry, 0, 255, 5, 300)));
-        vGuardedPrint(g_print_buf);
-        sprintf(g_print_buf, "%urmp\n", (map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL)));
-        vGuardedPrint(g_print_buf);
     }
     // LEFT HAT
     if (check_hat_lock(0)) {
@@ -169,6 +169,12 @@ void process_hid_controls(struct bt_hid_state controls) {
     // set the step period
     // g_step_delay_period_us_left = rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
     // g_step_delay_period_us_right = rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
+
+    int8_t ly_axis = convert_center_axis(controls.ly, 0, 255);
+    // sprintf(g_print_buf, "lx axis: %d\n", ly_axis);
+    // vGuardedPrint(g_print_buf);
+
+    drive_motors_rpm(ly_axis * 2, ly_axis * 2);
 
     // store the last state of the button
     button_lock = buttons;

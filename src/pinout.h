@@ -9,7 +9,7 @@
 #define STEP_L 7
 #define STEP_R 9
 #define DIR_L 6
-#define DIR_R 8
+#define DIR_R 8 
 #define MS1 2
 #define MS2 3
 #define MS3 4

@@ -10,6 +10,7 @@
 #include "pico/flash.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
+#include "pid.h"
 #include "pinout.h"
 #include "semphr.h"
 #include "stepper.h"
@@ -18,20 +19,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "pid.h"
 
 #define CORE_0 (1 << 0)
 #define CORE_1 (1 << 1)
-
-/*
- * PUT TIME IN MILISECONDS AND DIVIDE BY THIS FACTOR!
- * freertos is set with a tick speed of 100000 which gives
- * it 10us accuracy, but seems to be battling resources and
- * causing timing issues. the steppers are outputing accurate
- * timeing while the "blink" task seems to be off my 40
- * milliseconds. knowing this i'm going to keep these settings
- */
-#define US_TO_RTOS_TICK(us) (us / 10)
 
 // all GLOBALS (see utils)
 SemaphoreHandle_t g_mutex_print;
@@ -41,6 +31,7 @@ uint32_t g_step_delay_period_us_left = 3000;
 uint32_t g_step_delay_period_us_right = 3000;
 float g_current_angle_roll;
 float g_current_angle_pitch;
+bool is_bt_connected = false;
 
 /*
  * idk if i want to keep the tasks here or put them in
@@ -49,6 +40,7 @@ float g_current_angle_pitch;
  */
 
 void bt_hid_inputs(void *pvParameters) {
+    wait_for_bt_connect();
     struct bt_hid_state controls;
     while (true) {
         g_bt_packet_gaurd = true;
@@ -62,7 +54,6 @@ void bt_hid_inputs(void *pvParameters) {
 void stat_led_handle(void *pvParameters) {
     int interval = US_TO_RTOS_TICK(500000);
     while (true) {
-
         gpio_put(STAT_LED_1, LOW);
         gpio_put(STAT_LED_2, HIGH);
         vTaskDelay(interval);
@@ -73,43 +64,45 @@ void stat_led_handle(void *pvParameters) {
 }
 
 void mpu6050_task(void *pvParameters) {
+    wait_for_bt_connect();
     while (true) {
         mpu6050_poll();
         vTaskDelay(US_TO_RTOS_TICK(20000));
     }
 }
-// static struct stopwatch_t stopwatch1;
+
 void stepper_left_task(void *pvParameters) {
+    wait_for_bt_connect();
     while (true) {
-        // start time
-        // stopwatch1.start_time = get_absolute_time();
+        set_stepper_step_size(LEFT);
         gpio_put(STEP_L, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
-        // end time
-        // stopwatch1.end_time = get_absolute_time();
-        // print elapsed
-        // sprintf(g_print_buf, "elpased time %u | step %u\n", elapsed_time(stopwatch1), g_step_delay_period_us_left);
-        // vGuardedPrint(g_print_buf);
+
+        set_stepper_step_size(LEFT);
         gpio_put(STEP_L, LOW);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
     }
 }
 
 void stepper_right_task(void *pvParameters) {
+    wait_for_bt_connect();
     while (true) {
+        set_stepper_step_size(RIGHT);
         gpio_put(STEP_R, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
+
+        set_stepper_step_size(RIGHT);
         gpio_put(STEP_R, LOW);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
     }
 }
 
 void process_pid(void *pvParameters) {
-    
+    wait_for_bt_connect();
     struct pid_t pid_wheels;
     pid_init(&pid_wheels, 5, 0.0000, 0.2);
     while (true) {
-        balance(&pid_wheels);
+        // balance(&pid_wheels);
         vTaskDelay(US_TO_RTOS_TICK(100000));
     }
 }

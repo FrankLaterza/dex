@@ -18,30 +18,11 @@ void pid_init(struct pid_t *pid, float kp, float ki, float kd) {
     pid->error_last = 0;
 }
 
-// golf this shit it looks awful
-// TODO add micro stepping profile
 void balance(struct pid_t *pid_wheels) {
     // get target angle
-    float out = pid_calc(pid_wheels, g_current_angle_roll, 0);
-    // set the dir
-    if (out > 0) {
-        set_direction(FORWARD);
-    } else {
-        set_direction(BACKWARD);
-    }
-    // step delay
-    uint32_t delay = rpm_to_step_delay_us(fabs(out));
-
-    // check min delay
-    if (delay > MAX_STEP_TASK_DELAY) {
-        delay = MAX_STEP_TASK_DELAY;
-    }
-    
-    // sprintf(g_print_buf, "angle %f | pid %f | us period %u\n", g_current_angle_roll, out, delay);
-    // vGuardedPrint(g_print_buf);
-
-    g_step_delay_period_us_right = delay;
-    g_step_delay_period_us_left = delay;
+    float rpm = pid_calc(pid_wheels, g_current_angle_roll, 0);
+    // drive left and right the same for now
+    drive_motors_rpm(rpm, rpm);
 }
 
 float pid_calc(struct pid_t *pid, float current, float target) {

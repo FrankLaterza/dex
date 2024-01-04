@@ -265,6 +265,8 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             // Turn blue led on and beep
             gpio_put(STAT_LED_0, HIGH);
             beep(2, 50);
+            // set bt connected
+            is_bt_connected = true;
 
             break;
         case HID_SUBEVENT_DESCRIPTOR_AVAILABLE:
@@ -324,6 +326,8 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             // turn BLUE LED OFF AND BEEP
             gpio_put(STAT_LED_0, LOW);
             beep(2, 50);
+            // ? set disconected maybe shut down sequence
+            is_bt_connected = false;
             break;
         case HID_SUBEVENT_GET_REPORT_RESPONSE: {
             status = hid_subevent_get_report_response_get_handshake_status(packet);
