@@ -11,9 +11,9 @@
 #include <string.h>
 
 // uncomment if lame
-#define BUZZKILL
+// #define BUZZKILL
 
-// TODO i suspect something is wrong here (halts on bt connect)
+// TODO remove my main code is not printg on any other thread.
 // thread safe print
 void vGuardedPrint(char *s) {
     xSemaphoreTake(g_mutex_print, portMAX_DELAY);
@@ -46,11 +46,20 @@ void print_bin_8(uint8_t num) {
 }
 
 // this maps a value given from range and to range
-int map(int value, int fromLow, int fromHigh, int toLow, int toHigh) {
+int map_int(int value, int fromLow, int fromHigh, int toLow, int toHigh) {
+    assert(fromLow < fromHigh);
+    assert(toLow < toHigh);
     // truncate value into range
     value = (value < fromLow) ? fromLow : ((value > fromHigh) ? fromHigh : value);
     // mappp
     return toLow + (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow);
+}
+
+float convert_from_range_float(float num, float floor, float ceiling) {
+    assert(floor < ceiling);
+    num = min(num, ceiling);
+    num = max(num, floor);
+    return num;
 }
 
 // BUZZZZZZZ
@@ -70,9 +79,9 @@ int64_t elapsed_time(struct stopwatch_t stopwatch) {
 }
 
 // waits for bt_hid.c to set connected flag
-void wait_for_bt_connect(){
-    while(is_bt_connected == false){
+void wait_for_bt_connect() {
+    while (is_bt_connected == false) {
         // wait
-        vTaskDelay(US_TO_RTOS_TICK(100000));
+        vTaskDelay(US_TO_RTOS_TICK(500000));
     }
 }

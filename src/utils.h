@@ -30,6 +30,9 @@ extern float g_current_angle_pitch;
 extern uint32_t g_step_delay_period_us_left;
 extern uint32_t g_step_delay_period_us_right;
 extern bool is_bt_connected;
+extern float g_target_rpm;
+extern float g_steer;
+
 
 struct stopwatch_t {
     absolute_time_t start_time;
@@ -39,8 +42,10 @@ struct stopwatch_t {
 void vGuardedPrint(char *out);
 void print_bin_16(uint16_t num);
 void print_bin_8(uint8_t num);
-int map(int value, int fromLow, int fromHigh, int toLow, int toHigh);
+int map_int(int value, int fromLow, int fromHigh, int toLow, int toHigh);
+float convert_from_range_float(float num, float floor, float ceiling);
 void beep(uint8_t beep_count, uint8_t interval);
 void wait_for_bt_connect();
+ 
 
 #endif

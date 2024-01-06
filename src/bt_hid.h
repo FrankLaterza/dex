@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Copyright (c) 2023 Brian Starkey <stark3y@gmail.com>
+// Copyright (c) 2023 Brian Starkey <stark3y@gmail.com edited my frank laterza>
+#include <stdint.h>
 
 #ifndef BT_HID_H
 #define BT_HID_H
-
-#include <stdint.h>
 
 struct bt_hid_state {
     uint16_t buttons;

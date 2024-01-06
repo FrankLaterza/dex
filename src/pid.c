@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-void pid_init(struct pid_t *pid, float kp, float ki, float kd) {
+void pid_init(struct pid_t *pid, float kp, float ki, float kd, float max_windup) {
     pid->kp = kp;
     pid->ki = ki;
     pid->kd = kd;
@@ -16,13 +16,7 @@ void pid_init(struct pid_t *pid, float kp, float ki, float kd) {
     pid->d = 0;
     pid->error = 0;
     pid->error_last = 0;
-}
-
-void balance(struct pid_t *pid_wheels) {
-    // get target angle
-    float rpm = pid_calc(pid_wheels, g_current_angle_roll, 0);
-    // drive left and right the same for now
-    drive_motors_rpm(rpm, rpm);
+    pid->max_windup = max_windup;
 }
 
 float pid_calc(struct pid_t *pid, float current, float target) {
@@ -32,10 +26,15 @@ float pid_calc(struct pid_t *pid, float current, float target) {
     pid->error = target - current;
     // direct feedback
     pid->p = pid->kp * pid->error;
-    // integrate
-    pid->i += (pid->error);
+    // integrate with windup
+    pid->i = convert_from_range_float(pid->i + pid->error, -pid->max_windup, pid->max_windup);
     // derive
     pid->d = pid->kd * (pid->error - pid->error_last);
     // the magic
     return pid->p + (pid->ki * pid->i) + pid->d;
+}
+
+void print_profile(struct pid_t *pid){
+    sprintf(g_print_buf, "kp: %f, ki %f, kd%f\n", pid->kp, pid->ki, pid->kd);
+    vGuardedPrint(g_print_buf);
 }

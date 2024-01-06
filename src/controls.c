@@ -12,13 +12,16 @@ uint16_t buttons = 0;
 uint16_t hat = 0;
 uint16_t button_lock = 0;
 uint16_t hat_lock = 0;
+float speed_filt = 0.0;
+float steer_filt = 0.0;
+float alpha = 0.5;
 
 bool check_button_lock(uint8_t position) {
     return (IS_BIT_SET(buttons, position) && !IS_BIT_SET(button_lock, position));
 }
 
 /*
- * converts the messy hat format to normal button bit map (easier for lock)
+ * converts the messy hat format to normal button bit map_int (easier for lock)
  * bit 0 - left
  * bit 1 - down
  * bit 2 - right
@@ -70,30 +73,28 @@ bool check_hat_lock(uint8_t position) {
 void process_hid_controls(struct bt_hid_state controls) {
     buttons = controls.buttons;
     hat = hat_convert(controls.hat);
-    // print_bin_8(hat);
+
     // L1
     if (check_button_lock(0)) {
-        vGuardedPrint("button 1 pressed");
+        g_target_rpm = 0;
     }
     // R1
     if (check_button_lock(1)) {
-        vGuardedPrint("button 2 pressed");
+        g_target_rpm = 0;
     }
     // L2 button
     if (check_button_lock(2)) {
-        vGuardedPrint("button 3 pressed");
+        // g_target_rpm = -5;
     }
     // R2 button
     if (check_button_lock(3)) {
-        vGuardedPrint("button 4 pressed");
+        // g_target_rpm = 5;
     }
     // SHARE
     if (check_button_lock(4)) {
-        vGuardedPrint("button 5 pressed");
     }
     // OPTIONS
     if (check_button_lock(5)) {
-        vGuardedPrint("button 6 pressed");
     }
     // LEFT STICK PRESS
     if (check_button_lock(6)) {
@@ -132,12 +133,16 @@ void process_hid_controls(struct bt_hid_state controls) {
     }
     // DOWN HAT
     if (check_hat_lock(1)) {
+        // trim angle down
+        tune_center_down();
     }
     // RIGHT HAT
     if (check_hat_lock(2)) {
     }
     // UP HAT
     if (check_hat_lock(3)) {
+        // trim angle up
+        tune_center_up();
     }
     // DOWN LEFT HAT
     if (check_hat_lock(4)) {
@@ -152,29 +157,24 @@ void process_hid_controls(struct bt_hid_state controls) {
     if (check_hat_lock(7)) {
     }
 
-    // put analog controls right here
-
-    // im patching this by hand for now
-    // g_step_delay_period_us = rpm_to_step_delay_us(60);
-    // sprintf(g_print_buf, "step delay %fus\n", g_step_delay_period_us);
-    // vGuardedPrint(g_print_buf);
-
-    // sprintf(g_print_buf, "ry %u | ", controls.ry);
-    // vGuardedPrint(g_print_buf);
-    // sprintf(g_print_buf, "rmp map %u | ", map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
-    // vGuardedPrint(g_print_buf);
-    // sprintf(g_print_buf, "us %u\n", rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL)));
-    // vGuardedPrint(g_print_buf);
-
     // set the step period
-    // g_step_delay_period_us_left = rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
-    // g_step_delay_period_us_right = rpm_to_step_delay_us(map(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
+    // g_step_delay_period_us_left = rpm_to_step_delay_us(map_int(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
+    // g_step_delay_period_us_right = rpm_to_step_delay_us(map_int(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
 
     int8_t ly_axis = convert_center_axis(controls.ly, 0, 255);
+    int8_t rx_axis = convert_center_axis(controls.rx, 0, 255);
     // sprintf(g_print_buf, "lx axis: %d\n", ly_axis);
     // vGuardedPrint(g_print_buf);
 
-    drive_motors_rpm(ly_axis * 2, ly_axis * 2);
+    float scale1 = ly_axis * 0.2;
+    speed_filt = alpha * scale1 + (1 - alpha) * steer_filt;
+    g_target_rpm = speed_filt;
+
+    // filter steer input
+    float scale2 = rx_axis * 0.40;
+    steer_filt = alpha * scale2 + (1 - alpha) * steer_filt;
+    g_steer = steer_filt;
+    // drive_motors_rpm(ly_axis * 2, ly_axis * 2);
 
     // store the last state of the button
     button_lock = buttons;

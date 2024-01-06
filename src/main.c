@@ -32,12 +32,9 @@ uint32_t g_step_delay_period_us_right = 3000;
 float g_current_angle_roll;
 float g_current_angle_pitch;
 bool is_bt_connected = false;
+float g_target_rpm = 0;
+float g_steer = 0;
 
-/*
- * idk if i want to keep the tasks here or put them in
- * another file called tasks.c or put them in their
- * related files???
- */
 
 void bt_hid_inputs(void *pvParameters) {
     wait_for_bt_connect();
@@ -52,6 +49,7 @@ void bt_hid_inputs(void *pvParameters) {
 }
 
 void stat_led_handle(void *pvParameters) {
+    // wait_for_bt_connect();
     int interval = US_TO_RTOS_TICK(500000);
     while (true) {
         gpio_put(STAT_LED_1, LOW);
@@ -100,10 +98,12 @@ void stepper_right_task(void *pvParameters) {
 void process_pid(void *pvParameters) {
     wait_for_bt_connect();
     struct pid_t pid_wheels;
-    pid_init(&pid_wheels, 5, 0.0000, 0.2);
+    struct pid_t pid_rpm;
+    pid_init(&pid_wheels, 15, 0.5, 0.1, 15);
+    pid_init(&pid_rpm, 0.3, 0.01, 0, 30);
     while (true) {
-        // balance(&pid_wheels);
-        vTaskDelay(US_TO_RTOS_TICK(100000));
+        balance(&pid_wheels, &pid_rpm);
+        vTaskDelay(US_TO_RTOS_TICK(10000));
     }
 }
 

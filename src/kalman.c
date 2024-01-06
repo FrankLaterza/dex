@@ -44,7 +44,6 @@ void kalman_1d(float KalmanState, float KalmanUncertainty, float KalmanInput, fl
 void kalman_init() {
 
     // set unsertanty
-    // TODO move to init file and change init angle
     kalman_roll_angle = 0;
     kalman_uncertainty_roll_angle = 2 * 2;
     kalman_pitch_angle = 0;
