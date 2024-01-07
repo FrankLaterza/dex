@@ -11,19 +11,18 @@
 #define max(a, b) ((__typeof__(a))((a) > (b) ? (a) : (b)))
 
 /*
- * PUT TIME IN MILISECONDS AND DIVIDE BY THIS FACTOR!
+ * PUT TIME IN MICROSECONDS TO DIVIDE BY THIS FACTOR!
  * freertos is set with a tick speed of 100000 which gives
  * it 10us accuracy, but seems to be battling resources and
  * causing timing issues. the steppers are outputing accurate
- * timeing while the "blink" task seems to be off my 40
- * milliseconds. knowing this i'm going to keep these settings
+ * timing so. knowing this i'm going to keep these settings
  */
 #define US_TO_RTOS_TICK(us) (us / 10)
 
 // ALL GLOBALS
 extern bool g_bt_packet_gaurd;
 extern SemaphoreHandle_t g_mutex_print;
-extern char g_print_buf[1024];
+extern volatile char g_print_buf[1024];
 extern enum micro_step_t g_micro_step;
 extern float g_current_angle_roll;
 extern float g_current_angle_pitch;

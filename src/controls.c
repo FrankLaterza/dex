@@ -166,7 +166,8 @@ void process_hid_controls(struct bt_hid_state controls) {
     // sprintf(g_print_buf, "lx axis: %d\n", ly_axis);
     // vGuardedPrint(g_print_buf);
 
-    float scale1 = ly_axis * 0.2;
+    float scale1 = ly_axis * 1;
+    ;
     speed_filt = alpha * scale1 + (1 - alpha) * steer_filt;
     g_target_rpm = speed_filt;
 

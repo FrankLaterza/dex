@@ -17,7 +17,6 @@ struct pid_t {
 };
 
 void pid_init(struct pid_t *pid, float kp, float ki, float kd, float max_windup);
-void config_pid(struct pid_t *pid, float kp, float ki, float kd);
 float pid_calc(struct pid_t *pid, float current, float target);
 
 #endif

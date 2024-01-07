@@ -33,8 +33,3 @@ float pid_calc(struct pid_t *pid, float current, float target) {
     // the magic
     return pid->p + (pid->ki * pid->i) + pid->d;
 }
-
-void print_profile(struct pid_t *pid){
-    sprintf(g_print_buf, "kp: %f, ki %f, kd%f\n", pid->kp, pid->ki, pid->kd);
-    vGuardedPrint(g_print_buf);
-}

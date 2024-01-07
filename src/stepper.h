@@ -33,6 +33,7 @@ void drive_motors_rpm(float rpm_l, float rpm_r);
 void balance(struct pid_t *pid_wheels, struct pid_t *pid_rpm);
 void tune_center_up();
 void tune_center_down();
+void reset_balance();
 void set_stepper_step_size(uint8_t stepper);
 
 #endif

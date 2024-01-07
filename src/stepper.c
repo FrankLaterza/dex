@@ -20,11 +20,15 @@ static uint8_t step_size_r = FULL;
  */
 static float current_rpm_average = 0;
 static float center_balance = -4.5;
+static float average_rpm = 0;
+static float rpm_left = 0;
+static float rpm_right = 0;
 
 void enable_stepper() {
     // enable the motor
     gpio_put(SLEEP, HIGH);
     gpio_put(RESET, HIGH);
+    reset_balance();
 }
 
 void disable_stepper() {
@@ -121,19 +125,20 @@ void drive_motors_rpm(float rpm_l, float rpm_r) {
 
 // main balancing script
 void balance(struct pid_t *pid_wheels, struct pid_t *pid_rpm) {
-    if (fabs(g_current_angle_roll) >= 50) {
+    if (fabs(g_current_angle_roll) >= 60) {
         disable_stepper();
         return;
     }
-    // get target angle)
-    // float angle_offset = -pid_calc(pid_rpm, current_rpm_average, g_target_rpm);
-    // angle_offset = convert_from_range_float(angle_offset, -MAX_TARGET_ANGLE_ABSOLUTE, MAX_TARGET_ANGLE_ABSOLUTE);
-    float rpm_balance = pid_calc(pid_wheels, g_current_angle_roll, center_balance + g_target_rpm);
-    sprintf(g_print_buf, "current angle %f, steer %f, current rpm %f, target rpm %f\n",
-            g_current_angle_roll, g_steer, current_rpm_average, g_target_rpm);
-    vGuardedPrint(g_print_buf);
+    // enable_stepper();
+    // get target angle
+    float angle_offset = pid_calc(pid_rpm, average_rpm, g_target_rpm);
+    angle_offset = convert_from_range_float(angle_offset, -MAX_TARGET_ANGLE_ABSOLUTE, MAX_TARGET_ANGLE_ABSOLUTE);
+    float rpm_balance = pid_calc(pid_wheels, g_current_angle_roll, center_balance - angle_offset);
+    average_rpm += rpm_balance / 2;
+    average_rpm = convert_from_range_float(average_rpm, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
+
     // drive left and right the same for now
-    drive_motors_rpm(rpm_balance + g_steer, rpm_balance - g_steer);
+    drive_motors_rpm(average_rpm, average_rpm);
 }
 
 void tune_center_up() {
@@ -142,6 +147,12 @@ void tune_center_up() {
 
 void tune_center_down() {
     center_balance -= 0.05;
+}
+
+void reset_balance() {
+    average_rpm = 0;
+    rpm_left = 0;
+    rpm_right = 0;
 }
 
 void set_step_size(uint8_t step_config) {

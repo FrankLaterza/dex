@@ -26,7 +26,7 @@
 // all GLOBALS (see utils)
 SemaphoreHandle_t g_mutex_print;
 bool g_bt_packet_gaurd = false;
-char g_print_buf[1024];
+volatile char g_print_buf[1024];
 uint32_t g_step_delay_period_us_left = 3000;
 uint32_t g_step_delay_period_us_right = 3000;
 float g_current_angle_roll;
@@ -49,7 +49,7 @@ void bt_hid_inputs(void *pvParameters) {
 }
 
 void stat_led_handle(void *pvParameters) {
-    // wait_for_bt_connect();
+    wait_for_bt_connect();
     int interval = US_TO_RTOS_TICK(500000);
     while (true) {
         gpio_put(STAT_LED_1, LOW);
@@ -99,8 +99,8 @@ void process_pid(void *pvParameters) {
     wait_for_bt_connect();
     struct pid_t pid_wheels;
     struct pid_t pid_rpm;
-    pid_init(&pid_wheels, 15, 0.5, 0.1, 15);
-    pid_init(&pid_rpm, 0.3, 0.01, 0, 30);
+    pid_init(&pid_wheels, 0.4, 0.005, 8, 15);
+    pid_init(&pid_rpm, 0.15 , 0.001, 0.01, 0.2);
     while (true) {
         balance(&pid_wheels, &pid_rpm);
         vTaskDelay(US_TO_RTOS_TICK(10000));

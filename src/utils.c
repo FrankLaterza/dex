@@ -10,20 +10,24 @@
 #include <stdio.h>
 #include <string.h>
 
-// uncomment if lame
+// * uncomment if you're a buzz kill
 // #define BUZZKILL
+// * uncomment if you don't want to print anything
+// #define SHUT_UP
 
-// TODO remove my main code is not printg on any other thread.
+// ? not sure if threadsafe print is used for all prints
 // thread safe print
 void vGuardedPrint(char *s) {
+#ifndef SHUT_UP
     xSemaphoreTake(g_mutex_print, portMAX_DELAY);
     printf(s);
     xSemaphoreGive(g_mutex_print);
+#endif
 }
 
+// prints a uint16 in binary
 void print_bin_16(uint16_t num) {
     for (int i = 15; i >= 0; i--) {
-        // Use bitwise AND to check the value of the current bit
         uint16_t mask = 1 << i;
         sprintf(g_print_buf, "%d", (num & mask) ? 1 : 0);
         vGuardedPrint(g_print_buf);
@@ -33,9 +37,9 @@ void print_bin_16(uint16_t num) {
     vGuardedPrint("\n");
 }
 
+// prints a uint8 in binary
 void print_bin_8(uint8_t num) {
     for (int i = 7; i >= 0; i--) {
-        // Use bitwise AND to check the value of the current bit
         uint16_t mask = 1 << i;
         sprintf(g_print_buf, "%d", (num & mask) ? 1 : 0);
         vGuardedPrint(g_print_buf);
@@ -55,10 +59,19 @@ int map_int(int value, int fromLow, int fromHigh, int toLow, int toHigh) {
     return toLow + (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow);
 }
 
+// returns a value between given floor or ceilings
 float convert_from_range_float(float num, float floor, float ceiling) {
     assert(floor < ceiling);
     num = min(num, ceiling);
     num = max(num, floor);
+    return num;
+}
+
+// returns a value between plus or minus the given absolute range
+float convert_from_absoulte_range_float(float num, float absolute_range) {
+    absolute_range = fabs(absolute_range);
+    num = min(num, absolute_range);
+    num = max(num, -absolute_range);
     return num;
 }
 
@@ -82,6 +95,8 @@ int64_t elapsed_time(struct stopwatch_t stopwatch) {
 void wait_for_bt_connect() {
     while (is_bt_connected == false) {
         // wait
-        vTaskDelay(US_TO_RTOS_TICK(500000));
+        vTaskDelay(US_TO_RTOS_TICK(100000));
     }
+    // wait for bluetooth to do its thing
+    vTaskDelay(US_TO_RTOS_TICK(1000000));
 }
