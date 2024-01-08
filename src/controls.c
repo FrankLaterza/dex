@@ -6,15 +6,18 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define UP 1
+#define DOWN -1
 #define IS_BIT_SET(value, bit_position) (((value) >> (bit_position)) & 1)
 // one action per button press
-uint16_t buttons = 0;
-uint16_t hat = 0;
-uint16_t button_lock = 0;
-uint16_t hat_lock = 0;
-float speed_filt = 0.0;
-float steer_filt = 0.0;
-float alpha = 0.5;
+static uint16_t buttons = 0;
+static uint16_t hat = 0;
+static uint16_t button_lock = 0;
+static uint16_t hat_lock = 0;
+static float speed_filt = 0.0;
+static float steer_filt = 0.0;
+static float alpha = 0.5;
+static uint8_t tune_select = 0;
 
 bool check_button_lock(uint8_t position) {
     return (IS_BIT_SET(buttons, position) && !IS_BIT_SET(button_lock, position));
@@ -76,19 +79,19 @@ void process_hid_controls(struct bt_hid_state controls) {
 
     // L1
     if (check_button_lock(0)) {
-        g_target_rpm = 0;
+        tune_select -= (tune_select >= 0) ? 1 : -7;
     }
     // R1
     if (check_button_lock(1)) {
-        g_target_rpm = 0;
+        tune_select += (tune_select <= 7) ? 1 : -7;
     }
     // L2 button
     if (check_button_lock(2)) {
-        // g_target_rpm = -5;
+        tweaker(tune_select, UP);
     }
     // R2 button
     if (check_button_lock(3)) {
-        // g_target_rpm = 5;
+        tweaker(tune_select, DOWN);
     }
     // SHARE
     if (check_button_lock(4)) {
@@ -168,7 +171,7 @@ void process_hid_controls(struct bt_hid_state controls) {
 
     float scale1 = ly_axis * 1;
     ;
-    speed_filt = alpha * scale1 + (1 - alpha) * steer_filt;
+    speed_filt = alpha * scale1 + (1 - alpha) * speed_filt;
     g_target_rpm = speed_filt;
 
     // filter steer input
@@ -180,4 +183,79 @@ void process_hid_controls(struct bt_hid_state controls) {
     // store the last state of the button
     button_lock = buttons;
     hat_lock = hat;
+
+    print_tweaker();    
+    print_balance_stats();
+
+
+}
+
+void do_nothing() {
+    return;
+};
+
+void print_star() {
+    sprintf(g_print_buf, "*");
+    vGuardedPrint(g_print_buf);
+}
+
+/*
+ * handles pid turn
+ * turn select is as follows
+ *
+ */
+void tweaker(uint8_t tune_select, bool inc_dir) {
+    switch (tune_select) {
+    case 0:
+        pid_wheels.kp += inc_dir * 0.01;
+        break;
+    case 1:
+        pid_wheels.ki += inc_dir * 0.001;
+        break;
+    case 2:
+        pid_wheels.kd += inc_dir * 0.5;
+        break;
+    case 3:
+        pid_wheels.max_windup += inc_dir * 5;
+        break;
+    case 4:
+        pid_rpm.kp += inc_dir * 0.01;
+        break;
+    case 5:
+        pid_rpm.ki += inc_dir * 0.001;
+        break;
+    case 6:
+        pid_rpm.kd += inc_dir * 0.01;
+        break;
+    case 7:
+        pid_rpm.max_windup += inc_dir * 10;
+        break;
+    }
+}
+
+void print_tweaker(){
+    tune_select == 0 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "w-kp: %f, ", pid_wheels.kp);
+    vGuardedPrint(g_print_buf);
+    tune_select == 1 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "w-ki: %f, ", pid_wheels.ki);
+    vGuardedPrint(g_print_buf);
+    tune_select == 2 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "w-kd: %f, ", pid_wheels.kd);
+    vGuardedPrint(g_print_buf);
+    tune_select == 3 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "w-mw: %f, ", pid_wheels.max_windup);
+    vGuardedPrint(g_print_buf);
+    tune_select == 4 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "r-kp: %f, ", pid_rpm.kp);
+    vGuardedPrint(g_print_buf);
+    tune_select == 5 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "r-ki: %f, ", pid_rpm.ki);
+    vGuardedPrint(g_print_buf);
+    tune_select == 6 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "r-kd: %f, ", pid_rpm.kd);
+    vGuardedPrint(g_print_buf);
+    tune_select == 7 ? print_star() : do_nothing();
+    sprintf(g_print_buf, "r-mw: %f | ", pid_rpm.max_windup);
+    vGuardedPrint(g_print_buf);
 }

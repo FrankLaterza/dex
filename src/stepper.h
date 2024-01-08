@@ -35,5 +35,5 @@ void tune_center_up();
 void tune_center_down();
 void reset_balance();
 void set_stepper_step_size(uint8_t stepper);
-
+void print_balance_stats();
 #endif

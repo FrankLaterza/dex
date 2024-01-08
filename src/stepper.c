@@ -18,8 +18,9 @@ static uint8_t step_size_r = FULL;
  * during turning the offset of rpm will be applied
  * to both left and right the same.
  */
-static float current_rpm_average = 0;
 static float center_balance = -4.5;
+static float angle_offset = 0;
+static float rpm_balance = 0;
 static float average_rpm = 0;
 static float rpm_left = 0;
 static float rpm_right = 0;
@@ -104,9 +105,6 @@ void drive_motors_rpm(float rpm_l, float rpm_r) {
     rpm_l = convert_from_range_float(rpm_l, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
     rpm_r = convert_from_range_float(rpm_r, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
 
-    // current tangent rpm
-    current_rpm_average = (rpm_l + rpm_r) / 2;
-
     // store the step size (only changes in stepper task)
     step_size_l = rpm_step_profile(fabs(rpm_l));
     step_size_r = rpm_step_profile(fabs(rpm_r));
@@ -131,14 +129,20 @@ void balance(struct pid_t *pid_wheels, struct pid_t *pid_rpm) {
     }
     // enable_stepper();
     // get target angle
-    float angle_offset = pid_calc(pid_rpm, average_rpm, g_target_rpm);
+    angle_offset = pid_calc(pid_rpm, average_rpm, g_target_rpm);
     angle_offset = convert_from_range_float(angle_offset, -MAX_TARGET_ANGLE_ABSOLUTE, MAX_TARGET_ANGLE_ABSOLUTE);
-    float rpm_balance = pid_calc(pid_wheels, g_current_angle_roll, center_balance - angle_offset);
+    rpm_balance = pid_calc(pid_wheels, g_current_angle_roll, center_balance - angle_offset);
     average_rpm += rpm_balance / 2;
     average_rpm = convert_from_range_float(average_rpm, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
 
     // drive left and right the same for now
     drive_motors_rpm(average_rpm, average_rpm);
+}
+
+void print_balance_stats() {
+    sprintf(g_print_buf, "target rpm: %f, average rpm: %f, angle offset: %f, current angle: %f, balance rpm: %f\n",
+            g_target_rpm, average_rpm, angle_offset, g_current_angle_roll, rpm_balance);
+    vGuardedPrint(g_print_buf);
 }
 
 void tune_center_up() {

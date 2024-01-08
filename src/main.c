@@ -34,7 +34,8 @@ float g_current_angle_pitch;
 bool is_bt_connected = false;
 float g_target_rpm = 0;
 float g_steer = 0;
-
+struct pid_t pid_wheels;
+struct pid_t pid_rpm;
 
 void bt_hid_inputs(void *pvParameters) {
     wait_for_bt_connect();
@@ -44,11 +45,11 @@ void bt_hid_inputs(void *pvParameters) {
         controls = bt_hid_get_latest_lazy();
         g_bt_packet_gaurd = false;
         process_hid_controls(controls);
-        vTaskDelay(US_TO_RTOS_TICK(50000));
+        vTaskDelay(US_TO_RTOS_TICK(20000));
     }
 }
 
-void stat_led_handle(void *pvParameters) {
+void stat_led_task(void *pvParameters) {
     wait_for_bt_connect();
     int interval = US_TO_RTOS_TICK(500000);
     while (true) {
@@ -95,12 +96,10 @@ void stepper_right_task(void *pvParameters) {
     }
 }
 
-void process_pid(void *pvParameters) {
+void pid_task(void *pvParameters) {
     wait_for_bt_connect();
-    struct pid_t pid_wheels;
-    struct pid_t pid_rpm;
-    pid_init(&pid_wheels, 0.4, 0.005, 8, 15);
-    pid_init(&pid_rpm, 0.15 , 0.001, 0.01, 0.2);
+    pid_init(&pid_wheels, 0.3, 0.001, 6, 15);
+    pid_init(&pid_rpm, 0.14 , 0.02, 0.01, 100);
     while (true) {
         balance(&pid_wheels, &pid_rpm);
         vTaskDelay(US_TO_RTOS_TICK(10000));
@@ -110,7 +109,7 @@ void process_pid(void *pvParameters) {
 void start_core1() {
     bt_hid_init();
     vTaskStartScheduler();
-    bt_main();
+    bt_main(); // does not return
 }
 
 int main() {
@@ -127,12 +126,12 @@ int main() {
     TaskHandle_t pid;
 
     // TODO check task timing and align accordingly
-    xTaskCreate(stat_led_handle, "stat_led_handle", 256, NULL, 5, &stat_led);
+    xTaskCreate(stat_led_task, "stat_led", 256, NULL, 5, &stat_led);
     xTaskCreate(bt_hid_inputs, "inputs", 256, NULL, 3, &inputs);
     xTaskCreate(stepper_left_task, "stepper_left", 256, NULL, 1, &stepper_left);
     xTaskCreate(stepper_right_task, "stepper_right", 256, NULL, 1, &stepper_right);
     xTaskCreate(mpu6050_task, "mpu6050", 256, NULL, 2, &mpu6050);
-    xTaskCreate(process_pid, "pid", 256, NULL, 2, &pid);
+    xTaskCreate(pid_task, "pid", 256, NULL, 2, &pid);
 
     // beep after setup
     beep(3, 50);
