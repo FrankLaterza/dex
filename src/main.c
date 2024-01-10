@@ -26,7 +26,7 @@
 // all GLOBALS (see utils)
 SemaphoreHandle_t g_mutex_print;
 bool g_bt_packet_gaurd = false;
-volatile char g_print_buf[1024];
+char g_print_buf[1024];
 uint32_t g_step_delay_period_us_left = 3000;
 uint32_t g_step_delay_period_us_right = 3000;
 float g_current_angle_roll;

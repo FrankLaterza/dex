@@ -22,7 +22,7 @@
 // ALL GLOBALS
 extern bool g_bt_packet_gaurd;
 extern SemaphoreHandle_t g_mutex_print;
-extern volatile char g_print_buf[1024];
+extern char g_print_buf[1024];
 extern enum micro_step_t g_micro_step;
 extern float g_current_angle_roll;
 extern float g_current_angle_pitch;

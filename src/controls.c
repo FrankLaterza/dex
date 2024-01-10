@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define DEADZONE 20
+#define JOYSTICK_MAX 255
+#define JOYSTICK_MAX_HALF 127
 #define UP 1
 #define DOWN -1
 #define IS_BIT_SET(value, bit_position) (((value) >> (bit_position)) & 1)
@@ -65,8 +68,15 @@ uint8_t hat_convert(uint8_t hat) {
 }
 
 int8_t convert_center_axis(uint8_t in, uint8_t min, uint8_t max) {
-    uint8_t center = (max - min) / 2;
-    return center - in;
+    uint8_t center = (max + min) / 2;
+    return in - (int8_t)center - 1;
+}
+
+int8_t check_deadzone(int8_t input, uint8_t deadzone, uint8_t max) {
+    // get abs deadzone and scale
+    int8_t out = abs(input) > deadzone ? map_int(abs(input), deadzone, max, 0, max) : 0;
+    // get sign back
+    return input >= 0 ? out : -out;
 }
 
 bool check_hat_lock(uint8_t position) {
@@ -164,30 +174,34 @@ void process_hid_controls(struct bt_hid_state controls) {
     // g_step_delay_period_us_left = rpm_to_step_delay_us(map_int(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
     // g_step_delay_period_us_right = rpm_to_step_delay_us(map_int(controls.ry, 0, 255, MIN_RPM_FULL, MAX_RPM_FULL));
 
-    int8_t ly_axis = convert_center_axis(controls.ly, 0, 255);
-    int8_t rx_axis = convert_center_axis(controls.rx, 0, 255);
-    // sprintf(g_print_buf, "lx axis: %d\n", ly_axis);
-    // vGuardedPrint(g_print_buf);
-
-    float scale1 = ly_axis * 1;
-    ;
+    // convert LY axis
+    int8_t ly_axis = convert_center_axis(controls.ly, 0, JOYSTICK_MAX);
+    ly_axis = check_deadzone(ly_axis, DEADZONE, JOYSTICK_MAX_HALF);
+    // uint8_t ly_axis = controls.ly;
+    // scale and filter throttle
+    float scale1 = (float)ly_axis * 1.0;
     speed_filt = alpha * scale1 + (1 - alpha) * speed_filt;
     g_target_rpm = speed_filt;
 
-    // filter steer input
-    float scale2 = rx_axis * 0.40;
+    // convert RX axis
+    // int8_t rx_axis = convert_center_axis(controls.rx, 0, JOYSTICK_MAX);
+    // rx_axis = check_deadzone(rx_axis, DEADZONE, JOYSTICK_MAX);
+    // scale and filter steer
+    int8_t rx_axis = 0;
+    float scale2 = (float)rx_axis * 0.4;
     steer_filt = alpha * scale2 + (1 - alpha) * steer_filt;
-    g_steer = steer_filt;
-    // drive_motors_rpm(ly_axis * 2, ly_axis * 2);
+    g_target_rpm = steer_filt;
+
+
+    sprintf(g_print_buf, "speed: %f, steer %f\n", speed_filt, steer_filt);
+    vGuardedPrint(g_print_buf);
 
     // store the last state of the button
     button_lock = buttons;
     hat_lock = hat;
 
-    print_tweaker();    
-    print_balance_stats();
-
-
+    // print_tweaker();
+    // print_balance_stats();
 }
 
 void do_nothing() {
@@ -233,7 +247,7 @@ void tweaker(uint8_t tune_select, bool inc_dir) {
     }
 }
 
-void print_tweaker(){
+void print_tweaker() {
     tune_select == 0 ? print_star() : do_nothing();
     sprintf(g_print_buf, "w-kp: %f, ", pid_wheels.kp);
     vGuardedPrint(g_print_buf);
