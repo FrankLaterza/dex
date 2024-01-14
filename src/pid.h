@@ -25,6 +25,6 @@ void tune_center_up();
 void tune_center_down();
 void reset_balance();
 void print_tweaker(uint8_t tune_select);
-void tweaker(uint8_t tune_select, bool inc_dir);
+void tweaker(uint8_t tune_select, int8_t inc_dir);
 
 #endif

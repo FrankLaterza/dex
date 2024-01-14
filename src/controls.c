@@ -1,9 +1,10 @@
 #include "bt_hid.h"
 #include "pico/stdlib.h"
+#include "pid.h"
 #include "pinout.h"
 #include "stepper.h"
-#include "pid.h"
 #include "utils.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -101,7 +102,7 @@ void process_hid_controls(struct bt_hid_state controls) {
         tweaker(tune_select, UP);
     }
     // R2 button
-    if (check_button_lock(3)) { 
+    if (check_button_lock(3)) {
         tweaker(tune_select, DOWN);
     }
     // SHARE
@@ -180,7 +181,8 @@ void process_hid_controls(struct bt_hid_state controls) {
     ly_axis = check_deadzone(ly_axis, DEADZONE, JOYSTICK_MAX_HALF);
     // uint8_t ly_axis = controls.ly;
     // scale and filter throttle
-    float scale1 = (float)ly_axis * 1.0;
+    float scale1 = (float)ly_axis * 3; // max target is about 400 rpm
+    
     speed_filt = alpha * scale1 + (1 - alpha) * speed_filt;
     g_target_rpm = speed_filt;
 
@@ -189,7 +191,7 @@ void process_hid_controls(struct bt_hid_state controls) {
     rx_axis = check_deadzone(rx_axis, DEADZONE, JOYSTICK_MAX_HALF);
     // uint8_t ly_axis = controls.ly;
     // scale and filter throttle
-    float scale2 = (float)rx_axis * 0.4;
+    float scale2 = (float)rx_axis * 1.0;
     steer_filt = alpha * scale2 + (1 - alpha) * steer_filt;
     g_steer = steer_filt;
 

@@ -35,8 +35,8 @@ float g_current_angle_pitch;
 bool is_bt_connected = false;
 float g_target_rpm = 0;
 float g_steer = 0;
-uint32_t step_count_left = 0;
-uint32_t step_count_right = 0;
+float g_step_count_left = 0;
+float g_step_count_right = 0;
 
 void bt_hid_inputs(void *pvParameters) {
     wait_for_bt_connect();
@@ -74,7 +74,8 @@ void mpu6050_task(void *pvParameters) {
 void stepper_left_task(void *pvParameters) {
     wait_for_bt_connect();
     while (true) {
-        step_count_left++;
+        // add steps 
+        g_step_count_left += (direction_moving(LEFT) ? -1.0 : 1.0) / get_stepper_step_size(LEFT);
         set_stepper_step_size(LEFT);
         gpio_put(STEP_L, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
@@ -88,7 +89,7 @@ void stepper_left_task(void *pvParameters) {
 void stepper_right_task(void *pvParameters) {
     wait_for_bt_connect();
     while (true) {
-        step_count_right++;
+        g_step_count_right += (direction_moving(RIGHT) ? 1.0 : -1.0) / get_stepper_step_size(RIGHT);
         set_stepper_step_size(RIGHT);
         gpio_put(STEP_R, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));

@@ -8,8 +8,8 @@
 #include <stdio.h>
 
 #define MAX_TARGET_ANGLE_ABSOLUTE 40
-#define MAX_OFFSET_ANGLE_ABSOLUTE 20
-#define POSITION_LOCK_THRESHOLD 5
+#define MAX_POSITION_ANGLE_ABSOLUTE 10
+#define POSITION_LOCK_THRESHOLD_ABSOLUTE 10
 
 static struct pid_t pid_wheels;
 static struct pid_t pid_rpm;
@@ -17,7 +17,7 @@ static struct pid_t pid_position;
 /*
  * the average of the left and right rpm is taken
  * because we want to know the velocity vector
- * related to the center fo the robot. regarless
+ * related to the center fo the robot. regardless
  * during turning the offset of rpm will be applied
  * to both left and right the same.
  */
@@ -27,7 +27,8 @@ static float rpm_balance = 0;
 static float average_rpm = 0;
 static float rpm_left = 0;
 static float rpm_right = 0;
-static uint32_t step_count_avg = 0;
+static float step_count_avg = 0;
+float steer_map = 0;
 static bool position_lock = true;
 
 void pid_init(struct pid_t *pid, float kp, float ki, float kd, float max_windup) {
@@ -59,9 +60,9 @@ float pid_calc(struct pid_t *pid, float current, float target) {
 
 void pid_init_balance() {
     // TODO tune
-    pid_init(&pid_wheels, 0.3, 0.001, 6, 15);
-    pid_init(&pid_rpm, 0.14, 0.02, 0.01, 100);
-    pid_init(&pid_position, 0.1, 0.0, 0.0, 100);
+    pid_init(&pid_wheels, 1.7, 0.001, 11, 200);
+    pid_init(&pid_rpm, 0.03, 0.001, 0.045, 2000);
+    pid_init(&pid_position, 0.001, 0.003, 0.3, 400);
 }
 
 // main balancing script
@@ -71,42 +72,46 @@ void balance() {
         return;
     }
     // accelerate to target rpm
-    if (g_target_rpm > 0) {
+    if (fabs(g_target_rpm) > 1) {
         // get target angle
         angle_offset = pid_calc(&pid_rpm, average_rpm, g_target_rpm);
-        angle_offset = convert_from_absolute_range_float(angle_offset, MAX_TARGET_ANGLE_ABSOLUTE);
         position_lock = false; // we are moving
+        angle_offset = convert_from_absolute_range_float(angle_offset, MAX_TARGET_ANGLE_ABSOLUTE);
     }
     // lock onto position
     else if (position_lock) {
-        step_count_avg = (step_count_left + step_count_right) / 2;
+        step_count_avg = (g_step_count_left + g_step_count_right) / 2;
         angle_offset = pid_calc(&pid_position, step_count_avg, 0);
-        angle_offset = convert_from_absolute_range_float(angle_offset , MAX_TARGET_ANGLE_ABSOLUTE);
+        angle_offset = convert_from_absolute_range_float(angle_offset, MAX_POSITION_ANGLE_ABSOLUTE);
     }
-    // there is no target
-    else if (average_rpm <= POSITION_LOCK_THRESHOLD) {
+    // there is no target and we aren't fast so enable pos lock
+    else if (fabs(average_rpm) < POSITION_LOCK_THRESHOLD_ABSOLUTE) {
         // toggle position lock after its been set false by target rpm
         position_lock = true;
-        step_count_left = 0;
-        step_count_right = 0;
+        g_step_count_left = 0;
+        g_step_count_right = 0;
     }
+    // decelerate
     else {
-        // enforce deceleration
-        angle_offset = 0;
+        angle_offset = pid_calc(&pid_rpm, average_rpm, 0);
+        angle_offset = convert_from_absolute_range_float(angle_offset, MAX_TARGET_ANGLE_ABSOLUTE);
     }
 
-    angle_offset = convert_from_absolute_range_float(angle_offset, MAX_OFFSET_ANGLE_ABSOLUTE);
+    // angle_offset = convert_from_absolute_range_float(angle_offset, MAX_OFFSET_ANGLE_ABSOLUTE);
     rpm_balance = pid_calc(&pid_wheels, g_current_angle_roll, center_balance - angle_offset);
     average_rpm += rpm_balance / 2;
     average_rpm = convert_from_absolute_range_float(average_rpm, MAX_RPM_ABSOLUTE);
 
-    // drive left and right the same for now
-    drive_motors_rpm(average_rpm + g_steer, average_rpm - g_steer);
+    // map the steer based on how fast we are going
+    steer_map = g_steer * (1 - (average_rpm / (MAX_RPM_ABSOLUTE + 20)));
+
+    // drive left and right motors
+    drive_motors_rpm(average_rpm + steer_map, average_rpm - steer_map);
 }
 
 void print_balance_stats() {
-    sprintf(g_print_buf, "target rpm: %f, average rpm: %f, angle offset: %f, current angle: %f, balance rpm: %f",
-            g_target_rpm, average_rpm, angle_offset, g_current_angle_roll, rpm_balance);
+    sprintf(g_print_buf, "target rpm: %f, average rpm: %f, angle offset: %f, current angle: %f, steps l/r: %f/%f ",
+            g_target_rpm, average_rpm, angle_offset, g_current_angle_roll, step_count_avg, steer_map);
     vGuardedPrint(g_print_buf);
 }
 
@@ -122,6 +127,12 @@ void reset_balance() {
     average_rpm = 0;
     rpm_left = 0;
     rpm_right = 0;
+    g_step_count_left = 0;
+    g_step_count_right = 0;
+    angle_offset = 0;
+    rpm_balance = 0;
+    step_count_avg = 0;
+    position_lock = true;
 }
 
 void do_nothing() {
@@ -150,7 +161,7 @@ void print_tweaker(uint8_t tune_select) {
         sprintf(g_print_buf, "w-mw: %f | ", pid_wheels.max_windup);
         vGuardedPrint(g_print_buf);
     } else if (tune_select <= 7) {
-        vGuardedPrint("| rpm wheels: ");
+        vGuardedPrint("| pid rpm: ");
         tune_select == 4 ? print_star() : do_nothing();
         sprintf(g_print_buf, "r-kp: %f, ", pid_rpm.kp);
         vGuardedPrint(g_print_buf);
@@ -164,7 +175,7 @@ void print_tweaker(uint8_t tune_select) {
         sprintf(g_print_buf, "r-mw: %f | ", pid_rpm.max_windup);
         vGuardedPrint(g_print_buf);
     } else {
-        vGuardedPrint("| rpm position: ");
+        vGuardedPrint("| pid position: ");
         tune_select == 8 ? print_star() : do_nothing();
         sprintf(g_print_buf, "p-kp: %f, ", pid_position.kp);
         vGuardedPrint(g_print_buf);
@@ -184,10 +195,10 @@ void print_tweaker(uint8_t tune_select) {
  * handles pid turn
  * turn select is as follows
  */
-void tweaker(uint8_t tune_select, bool inc_dir) {
+void tweaker(uint8_t tune_select, int8_t inc_dir) {
     switch (tune_select) {
     case 0:
-        pid_wheels.kp += inc_dir * 0.01;
+        pid_wheels.kp += inc_dir * 0.1;
         break;
     case 1:
         pid_wheels.ki += inc_dir * 0.001;
@@ -199,25 +210,25 @@ void tweaker(uint8_t tune_select, bool inc_dir) {
         pid_wheels.max_windup += inc_dir * 5;
         break;
     case 4:
-        pid_rpm.kp += inc_dir * 0.01;
+        pid_rpm.kp += inc_dir * 0.001;
         break;
     case 5:
         pid_rpm.ki += inc_dir * 0.001;
         break;
     case 6:
-        pid_rpm.kd += inc_dir * 0.01;
+        pid_rpm.kd += inc_dir * 0.001;
         break;
     case 7:
         pid_rpm.max_windup += inc_dir * 10;
         break;
     case 8:
-        pid_position.kp += inc_dir * 0.1;
+        pid_position.kp += inc_dir * 0.001;
         break;
     case 9:
         pid_position.ki += inc_dir * 0.001;
         break;
     case 10:
-        pid_position.kd += inc_dir * 0.1;
+        pid_position.kd += inc_dir * 0.01;
         break;
     case 11:
         pid_position.max_windup += inc_dir * 10;

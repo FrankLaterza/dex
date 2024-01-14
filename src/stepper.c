@@ -10,6 +10,8 @@
 // static vars only live here
 static uint8_t step_size_l = FULL;
 static uint8_t step_size_r = FULL;
+static bool dir_left = false;
+static bool dir_right = false;
 
 void enable_stepper() {
     // enable the motor
@@ -25,8 +27,21 @@ void disable_stepper() {
 }
 
 void set_direction(bool stepper, bool direction) {
-    // sets the direction of a specific stepper
-    direction ? gpio_put(stepper ? DIR_L : DIR_R, LOW) : gpio_put(stepper ? DIR_L : DIR_R, HIGH);
+    // left stepper
+    if (stepper) {
+        gpio_put(DIR_L, direction);
+        dir_left = direction;
+    }
+    // right stepper
+    else {
+        gpio_put(DIR_R, direction);
+        dir_right = direction;
+    }
+}
+
+// returns true if forward false if backward for a given stepper
+bool direction_moving(bool stepper) {
+    return stepper ? dir_left : dir_right;
 }
 
 uint8_t rpm_step_profile(float rpm) {
@@ -88,8 +103,8 @@ void drive_motors_rpm(float rpm_l, float rpm_r) {
     rpm_l > 0 ? set_direction(LEFT, BACKWARD) : set_direction(LEFT, FORWARD);
     rpm_r > 0 ? set_direction(RIGHT, FORWARD) : set_direction(RIGHT, BACKWARD);
 
-    rpm_l = convert_from_range_float(rpm_l, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
-    rpm_r = convert_from_range_float(rpm_r, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
+    rpm_l = convert_from_absolute_range_float(rpm_l, MAX_RPM_ABSOLUTE);
+    rpm_r = convert_from_absolute_range_float(rpm_r, MAX_RPM_ABSOLUTE);
 
     // store the step size (only changes in stepper task)
     step_size_l = rpm_step_profile(fabs(rpm_l));
@@ -133,4 +148,8 @@ void set_step_size(uint8_t step_config) {
 
 void set_stepper_step_size(uint8_t stepper) {
     set_step_size(stepper ? step_size_l : step_size_r);
+}
+
+uint8_t get_stepper_step_size(uint8_t stepper) {
+    return stepper ? step_size_l : step_size_r;
 }

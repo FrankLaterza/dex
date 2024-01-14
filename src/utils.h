@@ -31,8 +31,8 @@ extern uint32_t g_step_delay_period_us_right;
 extern bool is_bt_connected;
 extern float g_target_rpm;
 extern float g_steer;
-extern uint32_t step_count_left;
-extern uint32_t step_count_right;
+extern float g_step_count_left;
+extern float g_step_count_right;
 
 struct stopwatch_t {
     absolute_time_t start_time;
