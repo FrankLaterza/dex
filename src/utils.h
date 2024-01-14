@@ -31,8 +31,8 @@ extern uint32_t g_step_delay_period_us_right;
 extern bool is_bt_connected;
 extern float g_target_rpm;
 extern float g_steer;
-extern struct pid_t pid_wheels;
-extern struct pid_t pid_rpm;
+extern uint32_t step_count_left;
+extern uint32_t step_count_right;
 
 struct stopwatch_t {
     absolute_time_t start_time;
@@ -44,8 +44,8 @@ void print_bin_16(uint16_t num);
 void print_bin_8(uint8_t num);
 int map_int(int value, int fromLow, int fromHigh, int toLow, int toHigh);
 float convert_from_range_float(float num, float floor, float ceiling);
+float convert_from_absolute_range_float(float num, float absolute_range);
 void beep(uint8_t beep_count, uint8_t interval);
 void wait_for_bt_connect();
  
-
 #endif

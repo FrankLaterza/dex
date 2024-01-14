@@ -68,7 +68,7 @@ float convert_from_range_float(float num, float floor, float ceiling) {
 }
 
 // returns a value between plus or minus the given absolute range
-float convert_from_absoulte_range_float(float num, float absolute_range) {
+float convert_from_absolute_range_float(float num, float absolute_range) {
     absolute_range = fabs(absolute_range);
     num = min(num, absolute_range);
     num = max(num, -absolute_range);

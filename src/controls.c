@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "pinout.h"
 #include "stepper.h"
+#include "pid.h"
 #include "utils.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -89,18 +90,18 @@ void process_hid_controls(struct bt_hid_state controls) {
 
     // L1
     if (check_button_lock(0)) {
-        tune_select -= (tune_select >= 0) ? 1 : -7;
+        tune_select = (tune_select - 1 + 12) % 12;
     }
     // R1
     if (check_button_lock(1)) {
-        tune_select += (tune_select <= 7) ? 1 : -7;
+        tune_select = (tune_select + 1) % 12;
     }
     // L2 button
     if (check_button_lock(2)) {
         tweaker(tune_select, UP);
     }
     // R2 button
-    if (check_button_lock(3)) {
+    if (check_button_lock(3)) { 
         tweaker(tune_select, DOWN);
     }
     // SHARE
@@ -184,92 +185,22 @@ void process_hid_controls(struct bt_hid_state controls) {
     g_target_rpm = speed_filt;
 
     // convert RX axis
-    // int8_t rx_axis = convert_center_axis(controls.rx, 0, JOYSTICK_MAX);
-    // rx_axis = check_deadzone(rx_axis, DEADZONE, JOYSTICK_MAX);
-    // scale and filter steer
-    int8_t rx_axis = 0;
+    int8_t rx_axis = convert_center_axis(controls.rx, 0, JOYSTICK_MAX);
+    rx_axis = check_deadzone(rx_axis, DEADZONE, JOYSTICK_MAX_HALF);
+    // uint8_t ly_axis = controls.ly;
+    // scale and filter throttle
     float scale2 = (float)rx_axis * 0.4;
     steer_filt = alpha * scale2 + (1 - alpha) * steer_filt;
-    g_target_rpm = steer_filt;
+    g_steer = steer_filt;
 
-
-    sprintf(g_print_buf, "speed: %f, steer %f\n", speed_filt, steer_filt);
-    vGuardedPrint(g_print_buf);
+    // sprintf(g_print_buf, "speed: %f, steer %f\n", speed_filt, steer_filt);
+    // vGuardedPrint(g_print_buf);
 
     // store the last state of the button
     button_lock = buttons;
     hat_lock = hat;
 
-    // print_tweaker();
-    // print_balance_stats();
-}
-
-void do_nothing() {
-    return;
-};
-
-void print_star() {
-    sprintf(g_print_buf, "*");
-    vGuardedPrint(g_print_buf);
-}
-
-/*
- * handles pid turn
- * turn select is as follows
- *
- */
-void tweaker(uint8_t tune_select, bool inc_dir) {
-    switch (tune_select) {
-    case 0:
-        pid_wheels.kp += inc_dir * 0.01;
-        break;
-    case 1:
-        pid_wheels.ki += inc_dir * 0.001;
-        break;
-    case 2:
-        pid_wheels.kd += inc_dir * 0.5;
-        break;
-    case 3:
-        pid_wheels.max_windup += inc_dir * 5;
-        break;
-    case 4:
-        pid_rpm.kp += inc_dir * 0.01;
-        break;
-    case 5:
-        pid_rpm.ki += inc_dir * 0.001;
-        break;
-    case 6:
-        pid_rpm.kd += inc_dir * 0.01;
-        break;
-    case 7:
-        pid_rpm.max_windup += inc_dir * 10;
-        break;
-    }
-}
-
-void print_tweaker() {
-    tune_select == 0 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "w-kp: %f, ", pid_wheels.kp);
-    vGuardedPrint(g_print_buf);
-    tune_select == 1 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "w-ki: %f, ", pid_wheels.ki);
-    vGuardedPrint(g_print_buf);
-    tune_select == 2 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "w-kd: %f, ", pid_wheels.kd);
-    vGuardedPrint(g_print_buf);
-    tune_select == 3 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "w-mw: %f, ", pid_wheels.max_windup);
-    vGuardedPrint(g_print_buf);
-    tune_select == 4 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "r-kp: %f, ", pid_rpm.kp);
-    vGuardedPrint(g_print_buf);
-    tune_select == 5 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "r-ki: %f, ", pid_rpm.ki);
-    vGuardedPrint(g_print_buf);
-    tune_select == 6 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "r-kd: %f, ", pid_rpm.kd);
-    vGuardedPrint(g_print_buf);
-    tune_select == 7 ? print_star() : do_nothing();
-    sprintf(g_print_buf, "r-mw: %f | ", pid_rpm.max_windup);
-    vGuardedPrint(g_print_buf);
+    print_tweaker(tune_select);
+    print_balance_stats();
+    vGuardedPrint("\n");
 }

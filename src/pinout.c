@@ -1,5 +1,7 @@
 #include "pinout.h"
 #include "hardware/i2c.h"
+#include "hardware/vreg.h"
+#include "hardware/watchdog.h"
 #include "mpu6050.h"
 #include "pico/binary_info.h"
 #include "pico/cyw43_arch.h"
@@ -7,18 +9,19 @@
 #include "stepper.h"
 #include "utils.h"
 #include <stdio.h>
-#include "hardware/vreg.h"
 
 void pinout_init() {
-    
     /*
      * note if you wish to overclock your pi pico you'll have to change the
-     * spi clock speed in your pico-sdk. This will allow you to communicate 
+     * spi clock speed in your pico-sdk. This will allow you to communicate
      * with the CYW43439 chip by further dividing the spi clock. You'll need
      * to change definition in your sdk located at
      * YOUR_SDK_LOCATION/src/rp2_common/pico_cyw43_driver/cyw43_bus_pio_spi.c
+     * for more details see https://github.com/raspberrypi/pico-sdk/pull/1521
      * TODO find a way to change this in the config in the cmake
-    */
+     * TODO remove for public project
+     *
+     */
     vreg_set_voltage(VREG_VOLTAGE_1_30);
     sleep_ms(1000);
     // OVERCLOCK 🔥🔥🔥
@@ -27,9 +30,22 @@ void pinout_init() {
     stdio_init_all();
     if (cyw43_arch_init()) {
         printf("Wi-Fi init failed\n");
-        panic("Wi-Fi init failed\n");
+        // panic("Wi-Fi init failed\n");
     }
 
+    // check watchdog
+    if (watchdog_enable_caused_reboot()) {
+        // ? add extra beep or blinking light
+        beep(5, 50);
+        printf("BAD DOG");
+        while (1) {
+            // stall until reboot
+        }
+    }
+    // enable watch dog 1sec
+    watchdog_enable(10000, true);
+
+    // pin setup
     gpio_init(PWR_LED);
     gpio_init(STAT_LED_0);
     gpio_init(STAT_LED_1);

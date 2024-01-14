@@ -25,6 +25,7 @@ target_link_libraries(${PROJECT_NAME}
     hardware_i2c
     hardware_timer
     hardware_flash
+    hardware_watchdog
 )
 
 # slow down spi flash for overclock

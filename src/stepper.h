@@ -23,17 +23,12 @@
 #define MIN_RPM_FOURTH 30
 #define MIN_RPM_EIGHTH 5
 #define MIN_RPM_SIXTEENTH 2
-#define MAX_TARGET_ANGLE_ABSOLUTE 40
 
 void enable_stepper();
 void disable_stepper();
 void set_direction(bool stepper, bool direction);
 uint32_t rpm_to_step_delay_us(bool stepper, float rpm);
 void drive_motors_rpm(float rpm_l, float rpm_r);
-void balance(struct pid_t *pid_wheels, struct pid_t *pid_rpm);
-void tune_center_up();
-void tune_center_down();
-void reset_balance();
 void set_stepper_step_size(uint8_t stepper);
 void print_balance_stats();
 #endif

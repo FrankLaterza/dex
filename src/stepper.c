@@ -11,20 +11,6 @@
 static uint8_t step_size_l = FULL;
 static uint8_t step_size_r = FULL;
 
-/*
- * the average of the left and right rpm is taken
- * because we want to know the velocity vector
- * related to the center fo the robot. regarless
- * during turning the offset of rpm will be applied
- * to both left and right the same.
- */
-static float center_balance = -4.5;
-static float angle_offset = 0;
-static float rpm_balance = 0;
-static float average_rpm = 0;
-static float rpm_left = 0;
-static float rpm_right = 0;
-
 void enable_stepper() {
     // enable the motor
     gpio_put(SLEEP, HIGH);
@@ -119,44 +105,6 @@ void drive_motors_rpm(float rpm_l, float rpm_r) {
     // drive motor
     g_step_delay_period_us_left = step_delay_l;
     g_step_delay_period_us_right = step_delay_r;
-}
-
-// main balancing script
-void balance(struct pid_t *pid_wheels, struct pid_t *pid_rpm) {
-    if (fabs(g_current_angle_roll) >= 60) {
-        disable_stepper();
-        return;
-    }
-    // enable_stepper();
-    // get target angle
-    angle_offset = pid_calc(pid_rpm, average_rpm, g_target_rpm);
-    angle_offset = convert_from_range_float(angle_offset, -MAX_TARGET_ANGLE_ABSOLUTE, MAX_TARGET_ANGLE_ABSOLUTE);
-    rpm_balance = pid_calc(pid_wheels, g_current_angle_roll, center_balance - angle_offset);
-    average_rpm += rpm_balance / 2;
-    average_rpm = convert_from_range_float(average_rpm, -MAX_RPM_ABSOLUTE, MAX_RPM_ABSOLUTE);
-
-    // drive left and right the same for now
-    drive_motors_rpm(average_rpm, average_rpm);
-}
-
-void print_balance_stats() {
-    sprintf(g_print_buf, "target rpm: %f, average rpm: %f, angle offset: %f, current angle: %f, balance rpm: %f\n",
-            g_target_rpm, average_rpm, angle_offset, g_current_angle_roll, rpm_balance);
-    vGuardedPrint(g_print_buf);
-}
-
-void tune_center_up() {
-    center_balance += 0.05;
-}
-
-void tune_center_down() {
-    center_balance -= 0.05;
-}
-
-void reset_balance() {
-    average_rpm = 0;
-    rpm_left = 0;
-    rpm_right = 0;
 }
 
 void set_step_size(uint8_t step_config) {

@@ -4,6 +4,7 @@
 #include "classic/sdp_server.h"
 #include "controls.h"
 #include "hardware/flash.h"
+#include "hardware/watchdog.h"
 #include "mpu6050.h"
 #include "pico/async_context.h"
 #include "pico/cyw43_arch.h"
@@ -34,8 +35,8 @@ float g_current_angle_pitch;
 bool is_bt_connected = false;
 float g_target_rpm = 0;
 float g_steer = 0;
-struct pid_t pid_wheels;
-struct pid_t pid_rpm;
+uint32_t step_count_left = 0;
+uint32_t step_count_right = 0;
 
 void bt_hid_inputs(void *pvParameters) {
     wait_for_bt_connect();
@@ -73,6 +74,7 @@ void mpu6050_task(void *pvParameters) {
 void stepper_left_task(void *pvParameters) {
     wait_for_bt_connect();
     while (true) {
+        step_count_left++;
         set_stepper_step_size(LEFT);
         gpio_put(STEP_L, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
@@ -86,6 +88,7 @@ void stepper_left_task(void *pvParameters) {
 void stepper_right_task(void *pvParameters) {
     wait_for_bt_connect();
     while (true) {
+        step_count_right++;
         set_stepper_step_size(RIGHT);
         gpio_put(STEP_R, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
@@ -93,16 +96,24 @@ void stepper_right_task(void *pvParameters) {
         set_stepper_step_size(RIGHT);
         gpio_put(STEP_R, LOW);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
+
     }
 }
 
 void pid_task(void *pvParameters) {
     wait_for_bt_connect();
-    pid_init(&pid_wheels, 0.3, 0.001, 6, 15);
-    pid_init(&pid_rpm, 0.14 , 0.02, 0.01, 100);
+    pid_init_balance();
     while (true) {
-        balance(&pid_wheels, &pid_rpm);
+        balance();
         vTaskDelay(US_TO_RTOS_TICK(10000));
+    }
+}
+
+void good_boy_task() {
+    // pet the dog 🐕
+    while (true) {
+        watchdog_update();
+        vTaskDelay(US_TO_RTOS_TICK(500000));
     }
 }
 
@@ -124,6 +135,7 @@ int main() {
     TaskHandle_t stepper_right;
     TaskHandle_t mpu6050;
     TaskHandle_t pid;
+    TaskHandle_t good_boy;
 
     // TODO check task timing and align accordingly
     xTaskCreate(stat_led_task, "stat_led", 256, NULL, 5, &stat_led);
@@ -132,6 +144,7 @@ int main() {
     xTaskCreate(stepper_right_task, "stepper_right", 256, NULL, 1, &stepper_right);
     xTaskCreate(mpu6050_task, "mpu6050", 256, NULL, 2, &mpu6050);
     xTaskCreate(pid_task, "pid", 256, NULL, 2, &pid);
+    xTaskCreate(good_boy_task, "good_boy", 256, NULL, 6, &good_boy);
 
     // beep after setup
     beep(3, 50);
