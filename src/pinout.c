@@ -12,20 +12,18 @@
 
 void pinout_init() {
     /*
-     * note if you wish to overclock your pi pico you'll have to change the
-     * spi clock speed in your pico-sdk. This will allow you to communicate
-     * with the CYW43439 chip by further dividing the spi clock. You'll need
-     * to change definition in your sdk located at
+     * note if you wish to overclock your pi pico to OVER 400MHz you'll have 
+     * to change the spi clock speed in your pico-sdk. This will allow you 
+     * to communicate with the CYW43439 chip by further dividing the spi 
+     * clock. You'll need to change definition in your sdk located at
      * YOUR_SDK_LOCATION/src/rp2_common/pico_cyw43_driver/cyw43_bus_pio_spi.c
      * for more details see https://github.com/raspberrypi/pico-sdk/pull/1521
-     * TODO find a way to change this in the config in the cmake
-     * TODO remove for public project
-     *
      */
-    vreg_set_voltage(VREG_VOLTAGE_1_30);
+
+    vreg_set_voltage(VREG_VOLTAGE_1_15);
     sleep_ms(1000);
     // OVERCLOCK 🔥🔥🔥
-    set_sys_clock_khz(400000, true);
+    set_sys_clock_khz(250000, true);
 
     stdio_init_all();
     if (cyw43_arch_init()) {
