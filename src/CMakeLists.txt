@@ -28,10 +28,10 @@ target_link_libraries(${PROJECT_NAME}
     hardware_watchdog
 )
 
-# slow down spi flash for overclock
-pico_define_boot_stage2(pico-coremark-div4 ${PICO_DEFAULT_BOOT_STAGE2_FILE})
-target_compile_definitions(pico-coremark-div4 PRIVATE PICO_FLASH_SPI_CLKDIV=4)
-pico_set_boot_stage2(${PROJECT_NAME} pico-coremark-div4)
+# slow down spi flash for overclock over 250Mhz
+# pico_define_boot_stage2(pico-coremark-div4 ${PICO_DEFAULT_BOOT_STAGE2_FILE})
+# target_compile_definitions(pico-coremark-div4 PRIVATE PICO_FLASH_SPI_CLKDIV=4)
+# pico_set_boot_stage2(${PROJECT_NAME} pico-coremark-div4)
 
 # enable usb output, disable uart output
 pico_enable_stdio_usb(${PROJECT_NAME} 1)

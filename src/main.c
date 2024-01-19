@@ -4,6 +4,7 @@
 #include "classic/sdp_server.h"
 #include "controls.h"
 #include "hardware/flash.h"
+#include "hardware/timer.h"
 #include "hardware/watchdog.h"
 #include "mpu6050.h"
 #include "pico/async_context.h"
@@ -71,15 +72,22 @@ void mpu6050_task(void *pvParameters) {
     }
 }
 
+struct stopwatch_t stopwatch;
+static int64_t elapsed_time_total;
+
 void stepper_left_task(void *pvParameters) {
     wait_for_bt_connect();
     while (true) {
-        // add steps 
+        // stopwatch.start_time = get_absolute_time();
+        // add steps
         g_step_count_left += (direction_moving(LEFT) ? -1.0 : 1.0) / get_stepper_step_size(LEFT);
         set_stepper_step_size(LEFT);
         gpio_put(STEP_L, HIGH);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
-
+        // stopwatch.end_time = get_absolute_time();
+        // elapsed_time_total = absolute_time_diff_us(stopwatch.start_time, stopwatch.end_time);
+        // sprintf(g_print_buf, "step delay: %dus, elapsed time: %lldus\n", g_step_delay_period_us_left, elapsed_time_total);
+        // vGuardedPrint(g_print_buf);
         set_stepper_step_size(LEFT);
         gpio_put(STEP_L, LOW);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_left));
@@ -97,7 +105,6 @@ void stepper_right_task(void *pvParameters) {
         set_stepper_step_size(RIGHT);
         gpio_put(STEP_R, LOW);
         vTaskDelay(US_TO_RTOS_TICK(g_step_delay_period_us_right));
-
     }
 }
 

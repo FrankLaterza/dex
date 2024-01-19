@@ -20,10 +20,10 @@ void pinout_init() {
      * for more details see https://github.com/raspberrypi/pico-sdk/pull/1521
      */
 
-    vreg_set_voltage(VREG_VOLTAGE_1_15);
+    vreg_set_voltage(VREG_VOLTAGE_1_00);
     sleep_ms(1000);
     // OVERCLOCK 🔥🔥🔥
-    set_sys_clock_khz(250000, true);
+    set_sys_clock_khz(200000, true);
 
     stdio_init_all();
     if (cyw43_arch_init()) {

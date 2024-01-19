@@ -202,7 +202,7 @@ void process_hid_controls(struct bt_hid_state controls) {
     button_lock = buttons;
     hat_lock = hat;
 
-    print_tweaker(tune_select);
-    print_balance_stats();
-    vGuardedPrint("\n");
+    // print_tweaker(tune_select);
+    // print_balance_stats();
+    // vGuardedPrint("\n");
 }
