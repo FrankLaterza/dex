@@ -1,5 +1,5 @@
 # Dex
-An open source self balancing robot designed for the Raspberry Pi Pico and controlled by a DS4 controller. Dex was made with 3D printed ABS, a custom PCB, and a whole lot of patience. This repository shall serve as a guide for anyone to reference for their own balancing robot. The code is well formatted for your convenience you nerd. Note this is an intermediate project so take your time and have fun.
+An open source self balancing robot designed for the Raspberry Pi Pico and controlled by a DS4 controller. Dex was made with 3D printed ABS, a custom PCB, and a whole lot of patience. This repository shall serve as a reference for anyone making their own balancing robot. The code is well formatted for your convenience you nerd. Note this is an intermediate project so take your time and have fun.
 
 <div style="display:flex; justify-content:center;">
   <img src="./resources/images/dex_1.jpg" alt="Image 1" width="500"/>
@@ -8,7 +8,7 @@ An open source self balancing robot designed for the Raspberry Pi Pico and contr
 
 ## Software
 This project uses the several libraries including FreeRTOS, BTstack, and the Pico SDK. Each is a specific versions and can be setup with a recursive git clone. For this project the software utilizes both cores on the RP2040.
-
+_
 ### Core 0
 The primary purpose of core 0 is to handle all of the CWY43 SPI and MPU6050 I2C interrupts that hog all the cpu.
 
@@ -64,8 +64,8 @@ This project was designed in Fusion 360 and all the files can be found under res
 | 3D printed Wheels       | 2     | 0                    | Main wheels with rubber O rings            | Designed in Fusion 360 CREDIT DESIGN |                                           | N/A                                                            |
 
 ## Known Issues
-Sometimes the program will halt when trying to connect to the BT HID.
-
+* Sometimes the program will halt when trying to connect to the BT HID.
+* Cannot reconnect to pico after pair to another controller.
 
 
 ## Starting Debugger
